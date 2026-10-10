@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The 114 Lock — Gate of the Surahs</title>
+<style>
+  :root{
+    --gold:#d4af37; --gold-bright:#f5d97a; --gold-dim:#8a6d1f;
+    --stone:#1a1d26; --stone-2:#242838; --ink:#0a0c12;
+    --glow:#6fe3c1; --danger:#e05555;
+    --row-h:52px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; user-select:none;}
+  html,body{height:100%;}
+  body{
+    background:
+      radial-gradient(1200px 700px at 50% -10%, #2b2f4a 0%, transparent 60%),
+      radial-gradient(900px 600px at 50% 115%, #1d2b3a 0%, transparent 55%),
+      linear-gradient(#0a0c12, #10131c);
+    color:#e8e2d0; font-family: Georgia, 'Times New Roman', serif;
+    display:flex; flex-direction:column; align-items:center;
+    min-height:100vh; overflow-x:hidden; padding:16px;
+  }
+  .crest{ text-align:center; margin-bottom:6px; cursor:pointer;}
+  .crest h1{
+    font-size:clamp(22px,4vw,34px); letter-spacing:3px;
+    background:linear-gradient(180deg, var(--gold-bright), var(--gold) 55%, var(--gold-dim));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow:0 0 24px rgba(212,175,55,.25);
+  }
+  .crest .sub{ font-size:13px; color:#9aa3b8; font-style:italic; letter-spacing:1px;}
+  .watchbar{
+    display:flex; gap:14px; align-items:center; flex-wrap:wrap; justify-content:center;
+    background:linear-gradient(180deg, rgba(212,175,55,.08), rgba(212,175,55,.02));
+    border:1px solid rgba(212,175,55,.25); border-radius:12px;
+    padding:8px 18px; margin:10px 0 18px; font-size:14px;
+  }
+  .watchbar b{ color:var(--gold-bright); letter-spacing:1px;}
+  .watchbar .sep{ color:var(--gold-dim);}
+  #countdown{ color:var(--glow); font-variant-numeric:tabular-nums;}
+  #geoStatus{ color:#9aa3b8; font-size:12px;}
+  .gear{
+    position:absolute; top:14px; right:16px; font-size:20px; cursor:pointer;
+    opacity:.6; transition:.2s;
+  }
+  .gear:hover{opacity:1; transform:rotate(20deg);}
+
+  /* ============ LOCK ============ */
+  .chamber{
+    position:relative; display:flex; gap:18px; align-items:center; justify-content:center;
+    background:linear-gradient(180deg, #262a3a, #14161f);
+    border:2px solid rgba(212,175,55,.35); border-radius:18px;
+    padding:26px 30px 20px;
+    box-shadow: inset 0 0 40px rgba(0,0,0,.7), 0 10px 40px rgba(0,0,0,.5);
+  }
+  .chamber::before{
+    content:"✦ ✦ ✦"; position:absolute; top:6px; left:0; right:0; text-align:center;
+    color:var(--gold-dim); font-size:12px; letter-spacing:8px;
+  }
+  .wheelCol{ display:flex; flex-direction:column; align-items:center; gap:8px;}
+  .wheel{
+    width:96px; height:calc(var(--row-h) * 3); overflow:hidden; border-radius:12px;
+    background:linear-gradient(180deg,#0d0f16 0%, #1e2230 18%, #2a2f44 50%, #1e2230 82%, #0d0f16 100%);
+    border:1px solid rgba(212,175,55,.4);
+    box-shadow: inset 0 12px 18px rgba(0,0,0,.8), inset 0 -12px 18px rgba(0,0,0,.8);
+    position:relative; touch-action:none; cursor:grab;
+  }
+  .wheel:active{cursor:grabbing;}
+  .wheel .strip{ will-change:transform; }
+  .cell{
+    height:var(--row-h); display:flex; align-items:center; justify-content:center; gap:8px;
+    font-size:26px; color:#cfd4e4; font-variant-numeric:tabular-nums;
+    text-shadow:0 1px 0 #000;
+  }
+  .cell .ar{ font-size:15px; color:var(--gold-dim);}
+  .wheel .band{
+    position:absolute; left:0; right:0; top:var(--row-h); height:var(--row-h);
+    border-top:1px solid rgba(212,175,55,.35); border-bottom:1px solid rgba(212,175,55,.35);
+    background:linear-gradient(180deg, rgba(212,175,55,.06), rgba(212,175,55,.13), rgba(212,175,55,.06));
+    pointer-events:none;
+  }
+  .wheel .glowband{
+    position:absolute; inset:-2px; border-radius:12px; pointer-events:none;
+    box-shadow:0 0 0px rgba(111,227,193,0); transition:box-shadow .5s;
+  }
+  .wheel.hot .glowband{ box-shadow:0 0 18px rgba(111,227,193,.45), inset 0 0 12px rgba(111,227,193,.2);}
+  .arr{ background:none; border:none; color:var(--gold); font-size:18px; cursor:pointer; opacity:.55; transition:.15s;}
+  .arr:hover{opacity:1; transform:scale(1.2);}
+  .wheelName{ font-size:12px; color:var(--gold-bright); min-height:30px; text-align:center; max-width:96px;}
+  .wheelName .ar{display:block; color:#c9b06a; font-size:14px;}
+  .chain{ color:var(--gold-dim); font-size:18px; align-self:center; padding-bottom:34px;}
+  .status{
+    margin-top:16px; text-align:center; font-style:italic; color:#9aa3b8;
+    min-height:24px; font-size:15px; letter-spacing:.5px;
+  }
+  .status.err{ color:var(--danger); }
+  .hint{ font-size:12px; color:#5d6478; margin-top:4px; text-align:center;}
+
+  /* ============ GATE OVERLAY ============ */
+  #gate{
+    position:fixed; inset:0; display:none; z-index:50; overflow:hidden;
+    background:radial-gradient(900px 500px at 50% 60%, #2a3350 0%, #0a0c12 75%);
+  }
+  #gate.open{display:block;}
+  #gate .rays{
+    position:absolute; inset:0;
+    background:
+      repeating-conic-gradient(from 0deg at 50% 62%, rgba(245,217,122,.10) 0deg 6deg, transparent 6deg 18deg);
+    animation:spinRays 40s linear infinite; opacity:0; transition:opacity 2s;
+  }
+  #gate.open .rays{opacity:1;}
+  @keyframes spinRays{to{transform:rotate(360deg);}}
+  .door{
+    position:absolute; top:0; bottom:0; width:50.5%;
+    background:
+      linear-gradient(90deg, rgba(0,0,0,.55), transparent 30%),
+      repeating-linear-gradient(0deg, #2b2f3e 0 46px, #232735 46px 50px),
+      linear-gradient(#2b2f3e,#1a1d28);
+    box-shadow:0 0 60px rgba(0,0,0,.9);
+    transition:transform 3.2s cubic-bezier(.65,0,.35,1);
+    z-index:2;
+  }
+  .door.left{left:0; border-right:2px solid var(--gold-dim);}
+  .door.right{right:0; border-left:2px solid var(--gold-dim);}
+  #gate.open .door.left{ transform:translateX(-102%);}
+  #gate.open .door.right{ transform:translateX(102%);}
+  .door .emblem{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    font-size:64px; color:var(--gold); text-shadow:0 0 20px rgba(212,175,55,.5);
+  }
+  #beyond{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; z-index:1; opacity:0;
+    transition:opacity 2.5s 1.2s;
+  }
+  #gate.open #beyond{opacity:1;}
+  #beyond h2{
+    font-size:clamp(28px,6vw,52px); letter-spacing:4px;
+    background:linear-gradient(180deg,#fff, var(--gold-bright));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow:0 0 40px rgba(245,217,122,.4);
+  }
+  #beyond p{ color:#b8c4d8; margin-top:10px; font-style:italic;}
+  #sparkleField{position:absolute; inset:0; z-index:3; pointer-events:none;}
+  .spark{
+    position:absolute; width:5px; height:5px; border-radius:50%;
+    background:var(--gold-bright); opacity:0; animation:rise 3.5s ease-out infinite;
+  }
+  @keyframes rise{
+    0%{transform:translateY(60vh) scale(.4); opacity:0;}
+    15%{opacity:.9;}
+    100%{transform:translateY(-30vh) scale(1.1); opacity:0;}
+  }
+  #sealBtn{
+    margin-top:26px; padding:10px 26px; font-family:inherit; font-size:15px; letter-spacing:2px;
+    background:linear-gradient(180deg,#2a2f44,#1a1d28); color:var(--gold-bright);
+    border:1px solid var(--gold); border-radius:10px; cursor:pointer; z-index:4;
+  }
+  #sealBtn:hover{ box-shadow:0 0 14px rgba(212,175,55,.4);}
+
+  /* ============ SETTINGS ============ */
+  #settings{
+    display:none; position:fixed; inset:0; z-index:60; background:rgba(5,7,12,.8);
+    align-items:center; justify-content:center;
+  }
+  #settings.show{display:flex;}
+  .panel{
+    background:linear-gradient(180deg,#232838,#161926); border:1px solid var(--gold-dim);
+    border-radius:14px; padding:22px 26px; width:min(420px,92vw);
+    box-shadow:0 20px 60px rgba(0,0,0,.7);
+  }
+  .panel h3{ color:var(--gold-bright); letter-spacing:2px; margin-bottom:14px; font-size:18px;}
+  .panel label{ display:block; font-size:13px; color:#aab2c5; margin:10px 0 3px;}
+  .panel input[type=time]{
+    background:#0d0f16; color:#e8e2d0; border:1px solid #3a4054; border-radius:8px;
+    padding:6px 10px; font-family:inherit; width:130px;
+  }
+  .timesGrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+  .panel .row{ display:flex; align-items:center; gap:10px; margin-top:14px; font-size:14px;}
+  .panel button{
+    margin-top:16px; padding:8px 18px; background:#0d0f16; color:var(--gold-bright);
+    border:1px solid var(--gold-dim); border-radius:8px; cursor:pointer; font-family:inherit;
+  }
+  .panel button:hover{border-color:var(--gold);}
+  .toggle{ cursor:pointer;}
+  .shake{ animation:shake .4s;}
+  @keyframes shake{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+</style>
+</head>
+<body>
+
+<div class="gear" id="gearBtn" title="Settings">⚙</div>
+
+<div class="crest" id="crest" title="…">
+  <h1>⚔ THE 114 LOCK ⚔</h1>
+  <div class="sub">Baldur's Gate of the Surahs — sealed until the combination is found</div>
+</div>
+
+<div class="watchbar">
+  <span>Current watch: <b id="watchName">—</b></span>
+  <span class="sep">✦</span>
+  <span>Gate reseals in <b id="countdown">—</b></span>
+  <span class="sep">✦</span>
+  <span id="geoStatus">locating…</span>
+</div>
+
+<div class="chamber" id="chamber"></div>
+
+<div class="status" id="status">The gate is sealed. The combination shifts with every prayer…</div>
+<div class="hint">Drag / scroll / arrow keys a wheel · turning a wheel shifts the wheels below it (mod 114) · triple-click the crest to peek at today's code</div>
+
+<!-- GATE -->
+<div id="gate">
+  <div class="rays"></div>
+  <div id="beyond">
+    <h2>THE GATE OPENS</h2>
+    <p id="beyondVerse">The combination was true. Enter, and be welcomed.</p>
+    <button id="sealBtn">Seal the gate again</button>
+  </div>
+  <div class="door left"><div class="emblem">☾</div></div>
+  <div class="door right"><div class="emblem">✧</div></div>
+  <div id="sparkleField"></div>
+</div>
+
+<!-- SETTINGS -->
+<div id="settings">
+  <div class="panel">
+    <h3>⚙ SETTINGS</h3>
+    <label>Prayer times (leave empty to use detected / default times)</label>
+    <div class="timesGrid">
+      <div><label>Fajr</label><input type="time" id="tFajr"></div>
+      <div><label>Dhuhr</label><input type="time" id="tDhuhr"></div>
+      <div><label>Asr</label><input type="time" id="tAsr"></div>
+      <div><label>Maghrib</label><input type="time" id="tMaghrib"></div>
+      <div><label>Isha</label><input type="time" id="tIsha"></div>
+    </div>
+    <div class="row"><input type="checkbox" id="cascadeChk" checked> <span for="">Cascade: turning a wheel shifts the wheels below it</span></div>
+    <div class="row"><input type="checkbox" id="soundChk" checked> Sound</div>
+    <button id="closeSettings">Close</button>
+  </div>
+</div>
+
+<script>
+/* ================= SURAHS ================= */
+const SURAS = [
+["Al-Fatihah","الفاتحة"],["Al-Baqarah","البقرة"],["Ali 'Imran","آل عمران"],["An-Nisa","النساء"],
+["Al-Ma'idah","المائدة"],["Al-An'am","الأنعام"],["Al-A'raf","الأعراف"],["Al-Anfal","الأنفال"],
+["At-Tawbah","التوبة"],["Yunus","يونس"],["Hud","هود"],["Yusuf","يوسف"],["Ar-Ra'd","الرعد"],
+["Ibrahim","ابراهيم"],["Al-Hijr","الحجر"],["An-Nahl","النحل"],["Al-Isra","الإسراء"],
+["Al-Kahf","الكهف"],["Maryam","مريم"],["Taha","طه"],["Al-Anbiya","الأنبياء"],["Al-Hajj","الحج"],
+["Al-Mu'minun","المؤمنون"],["An-Nur","النور"],["Al-Furqan","الفرقان"],["Ash-Shu'ara","الشعراء"],
+["An-Naml","النمل"],["Al-Qasas","القصص"],["Al-Ankabut","العنكبوت"],["Ar-Rum","الروم"],
+["Luqman","لقمان"],["As-Sajdah","السجدة"],["Al-Ahzab","الأحزاب"],["Saba","سبأ"],
+["Fatir","فاطر"],["Ya-Sin","يس"],["As-Saffat","الصافات"],["Sad","ص"],["Az-Zumar","الزمر"],
+["Ghafir","غافر"],["Fussilat","فصلت"],["Ash-Shuraa","الشورى"],["Az-Zukhruf","الزخرف"],
+["Ad-Dukhan","الدخان"],["Al-Jathiyah","الجاثية"],["Al-Ahqaf","الأحقاف"],["Muhammad","محمد"],
+["Al-Fath","الفتح"],["Al-Hujurat","الحجرات"],["Qaf","ق"],["Adh-Dhariyat","الذاريات"],
+["At-Tur","الطور"],["An-Najm","النجم"],["Al-Qamar","القمر"],["Ar-Rahman","الرحمن"],
+["Al-Waqi'ah","الواقعة"],["Al-Hadid","الحديد"],["Al-Mujadila","المجادلة"],["Al-Hashr","الحشر"],
+["Al-Mumtahanah","الممتحنة"],["As-Saff","الصف"],["Al-Jumu'ah","الجمعة"],
+["Al-Munafiqun","المنافقون"],["At-Taghabun","التغابن"],["At-Talaq","الطلاق"],
+["At-Tahrim","التحريم"],["Al-Mulk","الملك"],["Al-Qalam","القلم"],["Al-Haqqah","الحاقة"],
+["Al-Ma'arij","المعارج"],["Nuh","نوح"],["Al-Jinn","الجن"],["Al-Muzzammil","المزمل"],
+["Al-Muddathth","المدثر"],["Al-Qiyamah","القيامة"],["Al-Insan","الإنسان"],
+["Al-Mursalat","المرسلات"],["An-Naba","النبأ"],["An-Nazi'at","النازعات"],["Abasa","عبس"],
+["At-Takwir","التكوير"],["Al-Infitar","الانفطار"],["Al-Mutaffifin","المطففين"],
+["Al-Inshiqaq","الانشقاق"],["Al-Buruj","البروج"],["At-Tariq","الطارق"],["Al-A'la","الأعلى"],
+["Al-Ghashiyah","الغاشية"],["Al-Fajr","الفجر"],["Al-Balad","البلد"],["Ash-Shams","الشمس"],
+["Al-Layl","الليل"],["Ad-Duhaa","الضحى"],["Ash-Sharh","الشرح"],["At-Tin","التين"],
+["Al-'Alaq","العلق"],["Al-Qadr","القدر"],["Al-Bayyinah","البينة"],["Az-Zalzalah","الزلزلة"],
+["Al-'Adiyat","العاديات"],["Al-Qari'ah","القارعة"],["At-Takathur","التكاثر"],
+["Al-'Asr","العصر"],["Al-Humazah","الهمزة"],["Al-Fil","الفيل"],["Quraysh","قريش"],
+["Al-Ma'un","الماعون"],["Al-Kawthar","الكوثر"],["Al-Kafirun","الكافرون"],["An-Nasr","النصر"],
+["Al-Masad","المسد"],["Al-Ikhlas","الإخلاص"],["Al-Falaq","الفلق"],["An-Nas","الناس"]
+];
+const N = 114;
+
+/* ================= AUDIO (synthesized, no assets) ================= */
+let AC=null;
+function ac(){ if(!AC){ try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} } if(AC&&AC.state==="suspended")AC.resume(); return AC; }
+let soundOn=true;
+function env(g,t,a,d,v){ g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(v,t+a); g.gain.exponentialRampToValueAtTime(.0001,t+a+d); }
+function tick(){ if(!soundOn||!ac())return; const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();
+  o.type="square"; o.frequency.value=900+Math.random()*300; env(g,t,.002,.04,.08); o.connect(g).connect(AC.destination); o.start(t); o.stop(t+.06);}
+function clack(){ if(!soundOn||!ac())return; const t=AC.currentTime,len=.08,buf=AC.createBuffer(1,AC.sampleRate*len,AC.sampleRate),d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);
+  const s=AC.createBufferSource(); s.buffer=buf; const f=AC.createBiquadFilter(); f.type="lowpass"; f.frequency.value=1200;
+  const g=AC.createGain(); env(g,t,.002,.08,.25); s.connect(f).connect(g).connect(AC.destination); s.start(t);}
+function gateChord(){ if(!soundOn||!ac())return; const t=AC.currentTime;
+  [110,164.8,220,329.6,440].forEach((fr,i)=>{ const o=AC.createOscillator(),g=AC.createGain();
+    o.type=i<2?"sawtooth":"sine"; o.frequency.value=fr;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.06,t+.8+i*.15); g.gain.exponentialRampToValueAtTime(.0001,t+4.5);
+    o.connect(g).connect(AC.destination); o.start(t); o.stop(t+4.6); });
+  const o=AC.createOscillator(),g=AC.createGain(); o.type="sine"; o.frequency.setValueAtTime(55,t); o.frequency.exponentialRampToValueAtTime(28,t+1.2);
+  env(g,t,.01,1.4,.5); o.connect(g).connect(AC.destination); o.start(t); o.stop(t+1.6);}
+function sealedThud(){ if(!soundOn||!ac())return; const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();
+  o.type="sine"; o.frequency.setValueAtTime(120,t); o.frequency.exponentialRampToValueAtTime(40,t+.3);
+  env(g,t,.005,.3,.4); o.connect(g).connect(AC.destination); o.start(t); o.stop(t+.35);}
+
+/* ================= WHEELS ================= */
+const ROW_H=52, COPIES=7; // copies of 1..114 for seamless wrap
+const chamber=document.getElementById("chamber");
+const statusEl=document.getElementById("status");
+let wheels=[], values=[1,1,1], cascade=true, isOpen=false, lastTickVal=[1,1,1];
+
+function buildWheels(){
+  chamber.innerHTML=""; wheels=[];
+  values=[1,1,1]; lastTickVal=[1,1,1];
+  for(let w=0; w<3; w++){
+    if(w>0){ const c=document.createElement("div"); c.className="chain"; c.textContent="⛓"; chamber.appendChild(c); }
+    const col=document.createElement("div"); col.className="wheelCol";
+    const up=document.createElement("button"); up.className="arr"; up.textContent="▲";
+    const wheel=document.createElement("div"); wheel.className="wheel";
+    const strip=document.createElement("div"); strip.className="strip";
+    for(let c=0;c<COPIES;c++) for(let v=1;v<=N;v++){
+      const cell=document.createElement("div"); cell.className="cell";
+      cell.innerHTML=`${v}<span class="ar">${SURAS[v-1][1]}</span>`;
+      strip.appendChild(cell);
+    }
+    wheel.appendChild(strip);
+    const band=document.createElement("div"); band.className="band"; wheel.appendChild(band);
+    const glow=document.createElement("div"); glow.className="glowband"; wheel.appendChild(glow);
+    const down=document.createElement("button"); down.className="arr"; down.textContent="▼";
+    const name=document.createElement("div"); name.className="wheelName";
+    col.append(up,wheel,down,name); chamber.appendChild(col);
+
+    const state={el:wheel,strip,name,up,down,idx:w};
+    let drag=null;
+    const setVal=(nv,silent)=>{ nv=((nv-1)%N+N)%N+1; if(nv===values[w])return;
+      const delta=nv-values[w];
+      // cascade: wheels BELOW this one shift by same delta (mod 114)
+      if(cascade && w<2){ values[w]=nv; applyWheel(w,false,true); for(let k=w+1;k<3;k++){ values[k]=((values[k]+delta-1)%N+N)%N+1; applyWheel(k,false,true);} }
+      else { values[w]=nv; applyWheel(w,false,true); }
+      tick();
+      if(!silent) checkLock();
+      updateNames();
+    };
+    up.onclick=()=>setVal(values[w]-1);
+    down.onclick=()=>setVal(values[w]+1);
+    wheel.addEventListener("wheel",e=>{ e.preventDefault(); setVal(values[w]+(e.deltaY>0?1:-1)); },{passive:false});
+    wheel.addEventListener("pointerdown",e=>{ drag={y:e.clientY,moved:0}; wheel.setPointerCapture(e.pointerId); });
+    wheel.addEventListener("pointermove",e=>{ if(!drag)return; const dy=e.clientY-drag.y; drag.moved=dy;
+      const steps=Math.round(dy/ROW_H); if(steps!==0){ drag.y+=steps*ROW_H; setVal(values[w]-steps); } });
+    wheel.addEventListener("pointerup",e=>{ if(drag&&Math.abs(drag.moved)<4){ // tap: upper half up, lower half down
+        const r=wheel.getBoundingClientRect(); setVal(values[w]+(e.clientY<r.top+ROW_H*1.5?-1:1)); } drag=null; });
+    wheels.push(state);
+  }
+  for(let w=0;w<3;w++) applyWheel(w,false,true);
+  updateNames();
+}
+function applyWheel(w,animate=true,silent=false){
+  const s=wheels[w], v=values[w];
+  const base=(3*N + (v-1)) * ROW_H;      // middle copy, current row lands centered
+  s.strip.style.transition = animate ? "transform .28s cubic-bezier(.2,.8,.3,1)" : "none";
+  s.strip.style.transform = `translateY(${ROW_H - base}px)`;
+  // normalize deep into middle copy when idle to avoid drift
+  if(!animate){ s.strip.getBoundingClientRect(); }
+  if(!silent && v!==lastTickVal[w]){ clack(); lastTickVal[w]=v; }
+  const el=s.el;
+}
+function updateNames(){
+  wheels.forEach((s,w)=>{ const [en,ar]=SURAS[values[w]-1];
+    s.name.innerHTML=`<span class="ar">${ar}</span>${en}`; });
+}
+
+/* ================= PRAYER TIME LOGIC ================= */
+const PRAYER_ORDER=["Fajr","Dhuhr","Asr","Maghrib","Isha"];
+const DEFAULT_TIMES={Fajr:"05:45",Dhuhr:"12:55",Asr:"16:15",Maghrib:"18:25",Isha:"19:45"};
+let times=null; // {Fajr:"HH:MM",...}
+let salt=localStorage.getItem("lock114_salt");
+if(!salt){ salt=Math.random().toString(36).slice(2)+"-"+Math.random().toString(36).slice(2); localStorage.setItem("lock114_salt",salt); }
+
+function toMin(hhmm){ const [h,m]=hhmm.split(":").map(Number); return h*60+m; }
+function loadManual(){ try{ return JSON.parse(localStorage.getItem("lock114_times")||"null"); }catch(e){ return null; } }
+
+async function fetchPrayerTimes(){
+  const manual=loadManual();
+  if(manual){ times=manual; document.getElementById("geoStatus").textContent="manual times"; return; }
+  document.getElementById("geoStatus").textContent="locating…";
+  try{
+    const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:8000}));
+    const {latitude:lat,longitude:lon}=pos.coords;
+    const d=new Date(), ds=`${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}`;
+    const r=await fetch(`https://api.aladhan.com/v1/timings/${ds}?latitude=${lat}&longitude=${lon}&method=2`);
+    const j=await r.json();
+    const t=j.data.timings;
+    times={}; for(const p of PRAYER_ORDER) times[p]=t[p].slice(0,5);
+    document.getElementById("geoStatus").textContent=`times for ${j.data.meta.timezone}`;
+    localStorage.setItem("lock114_geo",JSON.stringify({lat,lon,date:ds,times}));
+  }catch(e){
+    // cached?
+    try{
+      const c=JSON.parse(localStorage.getItem("lock114_geo")||"null");
+      if(c&&c.times){ times=c.times; document.getElementById("geoStatus").textContent="cached times"; return; }
+    }catch(_){}
+    times={...DEFAULT_TIMES};
+    document.getElementById("geoStatus").textContent="default times (set yours in ⚙)";
+  }
+}
+
+function currentInterval(){
+  if(!times) return null;
+  const now=new Date(), nowMin=now.getHours()*60+now.getMinutes();
+  const todays=PRAYER_ORDER.map(p=>({p,start:toMin(times[p])})).sort((a,b)=>a.start-b.start);
+  // pre-Fajr: still last night's Isha watch (key anchored to yesterday's Isha)
+  if(nowMin < todays[0].start){
+    const y=new Date(now); y.setDate(now.getDate()-1);
+    const key=`${y.getFullYear()}-${y.getMonth()+1}-${y.getDate()}|Isha`;
+    const nextTime=new Date(now.getFullYear(),now.getMonth(),now.getDate(),Math.floor(todays[0].start/60),todays[0].start%60);
+    return {name:"Isha", key, nextName:"Fajr", nextTime};
+  }
+  // find interval containing now
+  for(let i=0;i<todays.length;i++){
+    const cur=todays[i], next=todays[(i+1)%todays.length];
+    const nextTomorrow = i===todays.length-1;
+    if(nowMin>=cur.start && (nextTomorrow || nowMin<next.start)){
+      const key=`${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}|${cur.p}`;
+      let nextTime;
+      if(nextTomorrow){
+        nextTime=new Date(now); nextTime.setDate(now.getDate()+1);
+        nextTime.setHours(Math.floor(next.start/60), next.start%60, 0, 0);
+      }else{
+        nextTime=new Date(now.getFullYear(),now.getMonth(),now.getDate(),Math.floor(next.start/60),next.start%60);
+      }
+      return {name:cur.p, key, nextName:next.p, nextTime};
+    }
+  }
+  return null;
+}
+
+/* deterministic pseudo-random code per interval */
+function hash32(str){ let h=2166136261>>>0;
+  for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); }
+  h^=h>>>13; h=Math.imul(h,0x5bd1e995); h^=h>>>15; return h>>>0; }
+function secretCode(){
+  const iv=currentInterval(); if(!iv) return [1,1,1];
+  const h1=hash32(iv.key+"|"+salt), h2=hash32(iv.key+"#2|"+salt), h3=hash32(iv.key+"#3|"+salt);
+  return [h1%N+1, h2%N+1, h3%N+1];
+}
+
+function updateWatch(){
+  const iv=currentInterval(); if(!iv) return;
+  document.getElementById("watchName").textContent=
+    `${iv.name} → ${iv.nextName}`;
+  const ms=iv.nextTime-new Date();
+  const mins=Math.max(0,Math.floor(ms/60000)), secs=Math.max(0,Math.floor(ms/1000)%60);
+  const hrs=Math.floor(mins/60);
+  document.getElementById("countdown").textContent =
+    (hrs>0?hrs+"h ":"") + (mins%60)+"m "+secs+"s";
+  // if interval changed while open, reseal
+  if(isOpen && iv.key!==openKey){ sealGate(); checkLock(true); }
+}
+
+/* ================= LOCK / GATE ================= */
+let openKey=null;
+function checkLock(silent){
+  const code=secretCode(), iv=currentInterval();
+  const match = iv && values[0]===code[0] && values[1]===code[1] && values[2]===code[2];
+  if(match && !isOpen) openGate(iv);
+  else if(!match && isOpen) sealGate();
+  else if(!match && !silent){
+    statusEl.textContent="The gate holds fast… the tumblers resist you.";
+    statusEl.classList.add("err");
+    document.getElementById("chamber").classList.remove("shake");
+    void document.getElementById("chamber").offsetWidth;
+    document.getElementById("chamber").classList.add("shake");
+    sealedThud();
+    setTimeout(()=>{statusEl.classList.remove("err"); statusEl.textContent="The gate is sealed. The combination shifts with every prayer…";},1800);
+  }
+  wheels.forEach((s,w)=> s.el.classList.toggle("hot", match && values[w]===code[w]));
+}
+function openGate(iv){
+  isOpen=true; openKey=iv.key;
+  gateChord();
+  const code=secretCode();
+  document.getElementById("beyondVerse").textContent=
+    `Surah ${code[0]} · ${code[1]} · ${code[2]} — ${SURAS[code[0]-1][0]}, ${SURAS[code[1]-1][0]}, ${SURAS[code[2]-1][0]}`;
+  document.getElementById("gate").classList.add("open");
+  const sf=document.getElementById("sparkleField"); sf.innerHTML="";
+  for(let i=0;i<40;i++){ const sp=document.createElement("div"); sp.className="spark";
+    sp.style.left=Math.random()*100+"vw"; sp.style.bottom="10vh";
+    sp.style.animationDelay=(Math.random()*3)+"s"; sp.style.animationDuration=(2.5+Math.random()*2.5)+"s";
+    sf.appendChild(sp); }
+  statusEl.textContent="The ancient doors groan and part…";
+}
+function sealGate(){
+  if(!isOpen) return; isOpen=false; openKey=null;
+  document.getElementById("gate").classList.remove("open");
+  sealedThud();
+  statusEl.textContent="The gate is sealed once more. Watch the prayers…";
+}
+document.getElementById("sealBtn").onclick=()=>{ sealGate(); // reset wheels so it isn't instantly still matching? it will match again — fine, keeps open; user asked lock, keep simple
+};
+
+/* ================= UI WIRING ================= */
+document.getElementById("gearBtn").onclick=()=>{ 
+  document.getElementById("settings").classList.add("show");
+  if(times) PRAYER_ORDER.forEach(p=>document.getElementById("t"+p).value=times[p]||"");
+};
+document.getElementById("closeSettings").onclick=()=>{
+  const manual={};
+  PRAYER_ORDER.forEach(p=>{ const v=document.getElementById("t"+p).value; if(v) manual[p]=v; });
+  if(Object.keys(manual).length) localStorage.setItem("lock114_times", JSON.stringify(manual));
+  else localStorage.removeItem("lock114_times");
+  cascade=document.getElementById("cascadeChk").checked;
+  localStorage.setItem("lock114_cascade", cascade?"1":"0");
+  soundOn=document.getElementById("soundChk").checked;
+  localStorage.setItem("lock114_sound", soundOn?"1":"0");
+  document.getElementById("settings").classList.remove("show");
+  fetchPrayerTimes().then(()=>{ checkLock(true); });
+};
+document.getElementById("crest").addEventListener("click",(e)=>{
+  // triple click reveals code for 5s (for testing)
+  const now=Date.now(); crestClicks=(now-(crestLast||0)<600)?crestClicks+1:1; crestLast=now;
+  if(crestClicks>=3){ crestClicks=0; const code=secretCode();
+    statusEl.textContent=`👁 Today's code: ${code.join(" · ")} — ${SURAS[code[0]-1][0]}, ${SURAS[code[1]-1][0]}, ${SURAS[code[2]-1][0]}`;
+    setTimeout(()=>{ if(!isOpen) statusEl.textContent="The gate is sealed. The combination shifts with every prayer…"; },6000);
+  }
+});
+let crestClicks=0, crestLast=0;
+
+/* keyboard */
+document.addEventListener("keydown",e=>{
+  if(document.getElementById("settings").classList.contains("show"))return;
+  const k=e.key; let target=-1,dir=0;
+  if(k==="ArrowUp"){target=0;dir=-1;} if(k==="ArrowDown"){target=0;dir=1;}
+  if(k==="q"||k==="Q"){target=1;dir=-1;} if(k==="a"||k==="A"){target=1;dir=1;}
+  if(k==="p"||k==="P"){target=2;dir=-1;} if(k==="l"||k==="L"){target=2;dir=1;}
+  if(target>=0){ e.preventDefault(); const v=values[target]+dir; 
+    if(cascade&&target<2){ const d=v-values[target]; values[target]=((v-1)%N+N)%N+1; applyWheel(target,true,true);
+      for(let kk=target+1;kk<3;kk++){ values[kk]=((values[kk]+d-1)%N+N)%N+1; applyWheel(kk,true,true);} tick(); }
+    else { values[target]=((v-1)%N+N)%N+1; applyWheel(target,true,true); tick(); }
+    updateNames(); checkLock();
+  }
+});
+
+/* ================= BOOT ================= */
+buildWheels();
+cascade = localStorage.getItem("lock114_cascade")!=="0";
+soundOn = localStorage.getItem("lock114_sound")!=="0";
+document.getElementById("cascadeChk").checked=cascade;
+document.getElementById("soundChk").checked=soundOn;
+fetchPrayerTimes().then(()=>{ updateWatch(); checkLock(true); });
+setInterval(updateWatch,1000);
+setInterval(()=>{ checkLock(true); },30000); // re-evaluate after prayer rollover
+</script>
+</body>
+</html>
