@@ -19,39 +19,46 @@
       radial-gradient(900px 600px at 50% 115%, #1d2b3a 0%, transparent 55%),
       linear-gradient(#0a0c12, #10131c);
     color:#e8e2d0; font-family: Georgia, 'Times New Roman', serif;
-    display:flex; flex-direction:column; align-items:center;
-    min-height:100vh; overflow-x:hidden; padding:16px;
+    min-height:100vh; overflow-x:hidden; padding:14px 16px 40px;
   }
+  .gear{ position:fixed; top:14px; right:16px; font-size:20px; cursor:pointer; opacity:.6; transition:.2s; z-index:70;}
+  .gear:hover{opacity:1; transform:rotate(20deg);}
   .crest{ text-align:center; margin-bottom:6px; cursor:pointer;}
   .crest h1{
-    font-size:clamp(22px,4vw,34px); letter-spacing:3px;
+    font-size:clamp(22px,4vw,32px); letter-spacing:3px;
     background:linear-gradient(180deg, var(--gold-bright), var(--gold) 55%, var(--gold-dim));
     -webkit-background-clip:text; background-clip:text; color:transparent;
     text-shadow:0 0 24px rgba(212,175,55,.25);
   }
   .crest .sub{ font-size:13px; color:#9aa3b8; font-style:italic; letter-spacing:1px;}
+  .tabs{ display:flex; gap:8px; justify-content:center; margin:12px 0 16px; flex-wrap:wrap;}
+  .tab{
+    padding:8px 20px; border:1px solid rgba(212,175,55,.3); border-radius:10px;
+    background:rgba(212,175,55,.04); color:#cfd4e4; cursor:pointer; font-family:inherit;
+    font-size:14px; letter-spacing:1px; transition:.2s;
+  }
+  .tab.active{ background:linear-gradient(180deg, rgba(212,175,55,.25), rgba(212,175,55,.08));
+    color:var(--gold-bright); border-color:var(--gold); box-shadow:0 0 12px rgba(212,175,55,.2);}
+  .view{display:none;} .view.active{display:block;}
+
+  /* ============ WATCHBAR ============ */
   .watchbar{
     display:flex; gap:14px; align-items:center; flex-wrap:wrap; justify-content:center;
     background:linear-gradient(180deg, rgba(212,175,55,.08), rgba(212,175,55,.02));
     border:1px solid rgba(212,175,55,.25); border-radius:12px;
-    padding:8px 18px; margin:10px 0 18px; font-size:14px;
+    padding:8px 18px; margin:0 auto 18px; font-size:14px; max-width:760px;
   }
   .watchbar b{ color:var(--gold-bright); letter-spacing:1px;}
   .watchbar .sep{ color:var(--gold-dim);}
   #countdown{ color:var(--glow); font-variant-numeric:tabular-nums;}
   #geoStatus{ color:#9aa3b8; font-size:12px;}
-  .gear{
-    position:absolute; top:14px; right:16px; font-size:20px; cursor:pointer;
-    opacity:.6; transition:.2s;
-  }
-  .gear:hover{opacity:1; transform:rotate(20deg);}
 
   /* ============ LOCK ============ */
   .chamber{
-    position:relative; display:flex; gap:18px; align-items:center; justify-content:center;
+    position:relative; display:flex; gap:14px; align-items:center; justify-content:center;
     background:linear-gradient(180deg, #262a3a, #14161f);
     border:2px solid rgba(212,175,55,.35); border-radius:18px;
-    padding:26px 30px 20px;
+    padding:26px 24px 20px; max-width:640px; margin:0 auto;
     box-shadow: inset 0 0 40px rgba(0,0,0,.7), 0 10px 40px rgba(0,0,0,.5);
   }
   .chamber::before{
@@ -66,7 +73,7 @@
     box-shadow: inset 0 12px 18px rgba(0,0,0,.8), inset 0 -12px 18px rgba(0,0,0,.8);
     position:relative; touch-action:none; cursor:grab;
   }
-  .wheel:active{cursor:grabbing;}
+  .wheel.locked{ cursor:default; }
   .wheel .strip{ will-change:transform; }
   .cell{
     height:var(--row-h); display:flex; align-items:center; justify-content:center; gap:8px;
@@ -85,17 +92,75 @@
     box-shadow:0 0 0px rgba(111,227,193,0); transition:box-shadow .5s;
   }
   .wheel.hot .glowband{ box-shadow:0 0 18px rgba(111,227,193,.45), inset 0 0 12px rgba(111,227,193,.2);}
-  .arr{ background:none; border:none; color:var(--gold); font-size:18px; cursor:pointer; opacity:.55; transition:.15s;}
-  .arr:hover{opacity:1; transform:scale(1.2);}
   .wheelName{ font-size:12px; color:var(--gold-bright); min-height:30px; text-align:center; max-width:96px;}
   .wheelName .ar{display:block; color:#c9b06a; font-size:14px;}
   .chain{ color:var(--gold-dim); font-size:18px; align-self:center; padding-bottom:34px;}
-  .status{
-    margin-top:16px; text-align:center; font-style:italic; color:#9aa3b8;
-    min-height:24px; font-size:15px; letter-spacing:.5px;
-  }
+  .status{ margin:14px auto 0; text-align:center; font-style:italic; color:#9aa3b8; min-height:24px; font-size:15px; letter-spacing:.5px; max-width:640px;}
   .status.err{ color:var(--danger); }
+  .status.good{ color:var(--glow); }
   .hint{ font-size:12px; color:#5d6478; margin-top:4px; text-align:center;}
+
+  /* ============ CHALLENGE ============ */
+  #challenge{ max-width:680px; margin:18px auto 0; display:none;}
+  #challenge.show{display:block;}
+  #challenge .q{
+    text-align:center; color:var(--gold-bright); font-style:italic; margin-bottom:12px; letter-spacing:.5px;
+  }
+  .opts{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px;}
+  @media(max-width:560px){ .opts{grid-template-columns:1fr;} }
+  .opt{
+    text-align:left; background:linear-gradient(180deg,#232838,#161926);
+    border:1px solid rgba(212,175,55,.3); border-radius:12px; padding:10px 14px;
+    color:#e8e2d0; cursor:pointer; font-family:inherit; transition:.15s;
+  }
+  .opt:hover{ border-color:var(--gold); box-shadow:0 0 12px rgba(212,175,55,.25); transform:translateY(-2px);}
+  .opt .num{ color:var(--gold-bright); font-size:20px; margin-right:8px;}
+  .opt .nm{ font-size:16px;}
+  .opt .mn{ display:block; font-size:12px; color:#9aa3b8; font-style:italic; margin-top:2px;}
+  .opt .guide{ display:block; font-size:12px; margin-top:6px; color:var(--glow);}
+  .opt.picked-right{ border-color:var(--glow); box-shadow:0 0 16px rgba(111,227,193,.5);}
+  .opt.picked-wrong{ border-color:var(--danger); box-shadow:0 0 16px rgba(224,85,85,.4);}
+  .opt.dim{ opacity:.45;}
+  #progress{ text-align:center; color:#9aa3b8; font-size:13px; margin-top:10px; letter-spacing:2px;}
+
+  /* ============ CHRONICLE / CODEX ============ */
+  .panelBox{
+    max-width:860px; margin:0 auto; background:linear-gradient(180deg,rgba(35,40,56,.7),rgba(22,25,38,.7));
+    border:1px solid rgba(212,175,55,.25); border-radius:14px; padding:20px 22px;
+  }
+  .panelBox h3{ color:var(--gold-bright); letter-spacing:2px; margin-bottom:12px; font-size:17px;}
+  .panelBox p.note{ font-size:13px; color:#9aa3b8; font-style:italic; margin-bottom:10px;}
+  textarea{
+    width:100%; min-height:130px; background:#0d0f16; color:#e8e2d0; border:1px solid #3a4054;
+    border-radius:10px; padding:12px; font-family:inherit; font-size:14px; resize:vertical; user-select:text;
+  }
+  .btn{
+    margin-top:10px; padding:8px 18px; background:#0d0f16; color:var(--gold-bright);
+    border:1px solid var(--gold-dim); border-radius:8px; cursor:pointer; font-family:inherit; font-size:14px;
+  }
+  .btn:hover{border-color:var(--gold); box-shadow:0 0 10px rgba(212,175,55,.25);}
+  .peopleList{ display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
+  .chip{
+    background:rgba(212,175,55,.08); border:1px solid rgba(212,175,55,.3); border-radius:20px;
+    padding:5px 12px; font-size:13px; color:#e8e2d0; cursor:pointer;
+  }
+  .chip:hover{ border-color:var(--gold);}
+  .chip .ct{ color:var(--glow); font-size:11px; margin-left:6px;}
+  .connList{ margin-top:14px; font-size:13px; color:#b8c4d8; line-height:1.9;}
+  .connList .lnk{ color:var(--gold-bright);}
+  #codexTable{ width:100%; border-collapse:collapse; margin-top:12px; font-size:13px;}
+  #codexTable th{ text-align:left; color:var(--gold-dim); font-weight:normal; letter-spacing:1px; padding:6px 8px; border-bottom:1px solid rgba(212,175,55,.25); position:sticky; top:0; background:#14161f;}
+  #codexTable td{ padding:5px 8px; border-bottom:1px solid rgba(255,255,255,.04); color:#cfd4e4;}
+  #codexTable tr:hover td{ background:rgba(212,175,55,.05);}
+  #codexTable .cnum{ color:var(--gold-bright);}
+  #codexTable .peopleCell{ color:var(--glow); font-size:12px;}
+  .codexWrap{ max-height:430px; overflow-y:auto; border:1px solid rgba(255,255,255,.06); border-radius:10px;}
+  .codexControls{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:4px;}
+  .codexControls input{
+    background:#0d0f16; color:#e8e2d0; border:1px solid #3a4054; border-radius:8px; padding:6px 10px; font-family:inherit; user-select:text;
+  }
+  .entryDetail{ margin:10px 0 0 12px; font-size:12px; color:#8b93a8;}
+  .entryDetail b{ color:var(--gold);}
 
   /* ============ GATE OVERLAY ============ */
   #gate{
@@ -105,8 +170,7 @@
   #gate.open{display:block;}
   #gate .rays{
     position:absolute; inset:0;
-    background:
-      repeating-conic-gradient(from 0deg at 50% 62%, rgba(245,217,122,.10) 0deg 6deg, transparent 6deg 18deg);
+    background:repeating-conic-gradient(from 0deg at 50% 62%, rgba(245,217,122,.10) 0deg 6deg, transparent 6deg 18deg);
     animation:spinRays 40s linear infinite; opacity:0; transition:opacity 2s;
   }
   #gate.open .rays{opacity:1;}
@@ -118,72 +182,46 @@
       repeating-linear-gradient(0deg, #2b2f3e 0 46px, #232735 46px 50px),
       linear-gradient(#2b2f3e,#1a1d28);
     box-shadow:0 0 60px rgba(0,0,0,.9);
-    transition:transform 3.2s cubic-bezier(.65,0,.35,1);
-    z-index:2;
+    transition:transform 3.2s cubic-bezier(.65,0,.35,1); z-index:2;
   }
   .door.left{left:0; border-right:2px solid var(--gold-dim);}
   .door.right{right:0; border-left:2px solid var(--gold-dim);}
   #gate.open .door.left{ transform:translateX(-102%);}
   #gate.open .door.right{ transform:translateX(102%);}
-  .door .emblem{
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    font-size:64px; color:var(--gold); text-shadow:0 0 20px rgba(212,175,55,.5);
-  }
-  #beyond{
-    position:absolute; inset:0; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; text-align:center; z-index:1; opacity:0;
-    transition:opacity 2.5s 1.2s;
-  }
+  .door .emblem{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    font-size:64px; color:var(--gold); text-shadow:0 0 20px rgba(212,175,55,.5);}
+  #beyond{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; text-align:center; z-index:1; opacity:0; transition:opacity 2.5s 1.2s; padding:0 20px;}
   #gate.open #beyond{opacity:1;}
-  #beyond h2{
-    font-size:clamp(28px,6vw,52px); letter-spacing:4px;
+  #beyond h2{ font-size:clamp(28px,6vw,52px); letter-spacing:4px;
     background:linear-gradient(180deg,#fff, var(--gold-bright));
     -webkit-background-clip:text; background-clip:text; color:transparent;
-    text-shadow:0 0 40px rgba(245,217,122,.4);
-  }
+    text-shadow:0 0 40px rgba(245,217,122,.4);}
   #beyond p{ color:#b8c4d8; margin-top:10px; font-style:italic;}
   #sparkleField{position:absolute; inset:0; z-index:3; pointer-events:none;}
-  .spark{
-    position:absolute; width:5px; height:5px; border-radius:50%;
-    background:var(--gold-bright); opacity:0; animation:rise 3.5s ease-out infinite;
-  }
-  @keyframes rise{
-    0%{transform:translateY(60vh) scale(.4); opacity:0;}
-    15%{opacity:.9;}
-    100%{transform:translateY(-30vh) scale(1.1); opacity:0;}
-  }
-  #sealBtn{
-    margin-top:26px; padding:10px 26px; font-family:inherit; font-size:15px; letter-spacing:2px;
+  .spark{ position:absolute; width:5px; height:5px; border-radius:50%;
+    background:var(--gold-bright); opacity:0; animation:rise 3.5s ease-out infinite;}
+  @keyframes rise{ 0%{transform:translateY(60vh) scale(.4); opacity:0;} 15%{opacity:.9;} 100%{transform:translateY(-30vh) scale(1.1); opacity:0;}}
+  #sealBtn{ margin-top:26px; padding:10px 26px; font-family:inherit; font-size:15px; letter-spacing:2px;
     background:linear-gradient(180deg,#2a2f44,#1a1d28); color:var(--gold-bright);
-    border:1px solid var(--gold); border-radius:10px; cursor:pointer; z-index:4;
-  }
+    border:1px solid var(--gold); border-radius:10px; cursor:pointer; z-index:4;}
   #sealBtn:hover{ box-shadow:0 0 14px rgba(212,175,55,.4);}
 
   /* ============ SETTINGS ============ */
-  #settings{
-    display:none; position:fixed; inset:0; z-index:60; background:rgba(5,7,12,.8);
-    align-items:center; justify-content:center;
-  }
+  #settings{ display:none; position:fixed; inset:0; z-index:60; background:rgba(5,7,12,.8);
+    align-items:center; justify-content:center;}
   #settings.show{display:flex;}
-  .panel{
-    background:linear-gradient(180deg,#232838,#161926); border:1px solid var(--gold-dim);
-    border-radius:14px; padding:22px 26px; width:min(420px,92vw);
-    box-shadow:0 20px 60px rgba(0,0,0,.7);
-  }
+  .panel{ background:linear-gradient(180deg,#232838,#161926); border:1px solid var(--gold-dim);
+    border-radius:14px; padding:22px 26px; width:min(440px,92vw); max-height:88vh; overflow-y:auto;
+    box-shadow:0 20px 60px rgba(0,0,0,.7);}
   .panel h3{ color:var(--gold-bright); letter-spacing:2px; margin-bottom:14px; font-size:18px;}
   .panel label{ display:block; font-size:13px; color:#aab2c5; margin:10px 0 3px;}
-  .panel input[type=time]{
-    background:#0d0f16; color:#e8e2d0; border:1px solid #3a4054; border-radius:8px;
-    padding:6px 10px; font-family:inherit; width:130px;
-  }
+  .panel input[type=time]{ background:#0d0f16; color:#e8e2d0; border:1px solid #3a4054; border-radius:8px; padding:6px 10px; font-family:inherit; width:130px;}
   .timesGrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
   .panel .row{ display:flex; align-items:center; gap:10px; margin-top:14px; font-size:14px;}
-  .panel button{
-    margin-top:16px; padding:8px 18px; background:#0d0f16; color:var(--gold-bright);
-    border:1px solid var(--gold-dim); border-radius:8px; cursor:pointer; font-family:inherit;
-  }
+  .panel button{ margin-top:16px; padding:8px 18px; background:#0d0f16; color:var(--gold-bright);
+    border:1px solid var(--gold-dim); border-radius:8px; cursor:pointer; font-family:inherit;}
   .panel button:hover{border-color:var(--gold);}
-  .toggle{ cursor:pointer;}
   .shake{ animation:shake .4s;}
   @keyframes shake{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
 </style>
@@ -192,25 +230,80 @@
 
 <div class="gear" id="gearBtn" title="Settings">⚙</div>
 
-<div class="crest" id="crest" title="…">
+<div class="crest" id="crest">
   <h1>⚔ THE 114 LOCK ⚔</h1>
-  <div class="sub">Baldur's Gate of the Surahs — sealed until the combination is found</div>
+  <div class="sub">Baldur's Gate of the Surahs — learn the flow, and the gate opens</div>
 </div>
 
-<div class="watchbar">
-  <span>Current watch: <b id="watchName">—</b></span>
-  <span class="sep">✦</span>
-  <span>Gate reseals in <b id="countdown">—</b></span>
-  <span class="sep">✦</span>
-  <span id="geoStatus">locating…</span>
+<div class="tabs">
+  <button class="tab active" data-view="gate">🔒 Gate</button>
+  <button class="tab" data-view="chronicle">📜 Chronicle</button>
+  <button class="tab" data-view="codex">📖 Codex</button>
 </div>
 
-<div class="chamber" id="chamber"></div>
+<!-- ============ GATE VIEW ============ -->
+<div class="view active" id="view-gate">
+  <div class="watchbar">
+    <span>Watch: <b id="watchName">—</b></span>
+    <span class="sep">✦</span>
+    <span>Reseals in <b id="countdown">—</b></span>
+    <span class="sep">✦</span>
+    <span id="geoStatus">locating…</span>
+  </div>
 
-<div class="status" id="status">The gate is sealed. The combination shifts with every prayer…</div>
-<div class="hint">Drag / scroll / arrow keys a wheel · turning a wheel shifts the wheels below it (mod 114) · triple-click the crest to peek at today's code</div>
+  <div class="chamber" id="chamber"></div>
+  <div class="status" id="status">The gate is sealed. The combination shifts with every prayer…</div>
+  <div class="hint" id="gateHint"></div>
 
-<!-- GATE -->
+  <div id="challenge">
+    <div class="q" id="challengeQ">The gate asks…</div>
+    <div class="opts" id="optsGrid"></div>
+    <div id="progress"></div>
+  </div>
+</div>
+
+<!-- ============ CHRONICLE VIEW ============ -->
+<div class="view" id="view-chronicle">
+  <div class="panelBox">
+    <h3>📜 THE CHRONICLE</h3>
+    <p class="note">Write about people and events — mention surahs by name or number (e.g. "surah 18", "Al-Kahf").
+    The lock weaves their names, links them to surahs, and draws the threads between them. What you record teaches the gate to guide you.</p>
+    <textarea id="chronText" placeholder="e.g. Today I thought of Musa and his brother Harun facing Fir'awn — surah 20. Aisha reminded me of the verses on patience in Al-Baqarah. Yusuf forgave his brothers (surah 12)…"></textarea>
+    <button class="btn" id="weaveBtn">✦ Weave into the Codex</button>
+    <div id="chronMsg" style="font-size:13px;color:var(--glow);margin-top:8px;"></div>
+    <h3 style="margin-top:22px;">People in your chronicle</h3>
+    <div class="peopleList" id="peopleList"></div>
+    <div id="entryDetail"></div>
+    <h3 style="margin-top:22px;">Threads between them</h3>
+    <div class="connList" id="connList"></div>
+    <div style="margin-top:18px;">
+      <button class="btn" id="exportBtn">⬇ Export chronicle</button>
+      <button class="btn" id="clearBtn">✖ Forget everything</button>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+      <button class="btn" id="importBtn">⬆ Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CODEX VIEW ============ -->
+<div class="view" id="view-codex">
+  <div class="panelBox">
+    <h3>📖 THE CODEX — 114 SURAH DATABASE</h3>
+    <p class="note">Every number of the lock bound to its surah: meaning, place of revelation, order of revelation, themes, and the people of your chronicle found within.</p>
+    <div class="codexControls">
+      <input id="codexSearch" placeholder="Search name, meaning, theme, person…">
+      <span style="font-size:12px;color:#5d6478;">sorted by revelation ⇢</span>
+    </div>
+    <div class="codexWrap">
+      <table id="codexTable">
+        <thead><tr><th>#</th><th>Revelation</th><th>Name</th><th>Meaning</th><th>Place</th><th>Themes</th><th>Your people</th></tr></thead>
+        <tbody id="codexBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- GATE OVERLAY -->
 <div id="gate">
   <div class="rays"></div>
   <div id="beyond">
@@ -227,7 +320,7 @@
 <div id="settings">
   <div class="panel">
     <h3>⚙ SETTINGS</h3>
-    <label>Prayer times (leave empty to use detected / default times)</label>
+    <label>Prayer times (empty = detected / default)</label>
     <div class="timesGrid">
       <div><label>Fajr</label><input type="time" id="tFajr"></div>
       <div><label>Dhuhr</label><input type="time" id="tDhuhr"></div>
@@ -235,51 +328,166 @@
       <div><label>Maghrib</label><input type="time" id="tMaghrib"></div>
       <div><label>Isha</label><input type="time" id="tIsha"></div>
     </div>
-    <div class="row"><input type="checkbox" id="cascadeChk" checked> <span for="">Cascade: turning a wheel shifts the wheels below it</span></div>
+    <div class="row"><input type="checkbox" id="modeChk"> <span>Free spin mode (turn wheels by hand, no challenges)</span></div>
+    <div class="row"><input type="checkbox" id="cascadeChk" checked> <span>Cascade: turning a wheel shifts the wheels below it (free spin)</span></div>
     <div class="row"><input type="checkbox" id="soundChk" checked> Sound</div>
     <button id="closeSettings">Close</button>
   </div>
 </div>
 
 <script>
-/* ================= SURAHS ================= */
-const SURAS = [
-["Al-Fatihah","الفاتحة"],["Al-Baqarah","البقرة"],["Ali 'Imran","آل عمران"],["An-Nisa","النساء"],
-["Al-Ma'idah","المائدة"],["Al-An'am","الأنعام"],["Al-A'raf","الأعراف"],["Al-Anfal","الأنفال"],
-["At-Tawbah","التوبة"],["Yunus","يونس"],["Hud","هود"],["Yusuf","يوسف"],["Ar-Ra'd","الرعد"],
-["Ibrahim","ابراهيم"],["Al-Hijr","الحجر"],["An-Nahl","النحل"],["Al-Isra","الإسراء"],
-["Al-Kahf","الكهف"],["Maryam","مريم"],["Taha","طه"],["Al-Anbiya","الأنبياء"],["Al-Hajj","الحج"],
-["Al-Mu'minun","المؤمنون"],["An-Nur","النور"],["Al-Furqan","الفرقان"],["Ash-Shu'ara","الشعراء"],
-["An-Naml","النمل"],["Al-Qasas","القصص"],["Al-Ankabut","العنكبوت"],["Ar-Rum","الروم"],
-["Luqman","لقمان"],["As-Sajdah","السجدة"],["Al-Ahzab","الأحزاب"],["Saba","سبأ"],
-["Fatir","فاطر"],["Ya-Sin","يس"],["As-Saffat","الصافات"],["Sad","ص"],["Az-Zumar","الزمر"],
-["Ghafir","غافر"],["Fussilat","فصلت"],["Ash-Shuraa","الشورى"],["Az-Zukhruf","الزخرف"],
-["Ad-Dukhan","الدخان"],["Al-Jathiyah","الجاثية"],["Al-Ahqaf","الأحقاف"],["Muhammad","محمد"],
-["Al-Fath","الفتح"],["Al-Hujurat","الحجرات"],["Qaf","ق"],["Adh-Dhariyat","الذاريات"],
-["At-Tur","الطور"],["An-Najm","النجم"],["Al-Qamar","القمر"],["Ar-Rahman","الرحمن"],
-["Al-Waqi'ah","الواقعة"],["Al-Hadid","الحديد"],["Al-Mujadila","المجادلة"],["Al-Hashr","الحشر"],
-["Al-Mumtahanah","الممتحنة"],["As-Saff","الصف"],["Al-Jumu'ah","الجمعة"],
-["Al-Munafiqun","المنافقون"],["At-Taghabun","التغابن"],["At-Talaq","الطلاق"],
-["At-Tahrim","التحريم"],["Al-Mulk","الملك"],["Al-Qalam","القلم"],["Al-Haqqah","الحاقة"],
-["Al-Ma'arij","المعارج"],["Nuh","نوح"],["Al-Jinn","الجن"],["Al-Muzzammil","المزمل"],
-["Al-Muddathth","المدثر"],["Al-Qiyamah","القيامة"],["Al-Insan","الإنسان"],
-["Al-Mursalat","المرسلات"],["An-Naba","النبأ"],["An-Nazi'at","النازعات"],["Abasa","عبس"],
-["At-Takwir","التكوير"],["Al-Infitar","الانفطار"],["Al-Mutaffifin","المطففين"],
-["Al-Inshiqaq","الانشقاق"],["Al-Buruj","البروج"],["At-Tariq","الطارق"],["Al-A'la","الأعلى"],
-["Al-Ghashiyah","الغاشية"],["Al-Fajr","الفجر"],["Al-Balad","البلد"],["Ash-Shams","الشمس"],
-["Al-Layl","الليل"],["Ad-Duhaa","الضحى"],["Ash-Sharh","الشرح"],["At-Tin","التين"],
-["Al-'Alaq","العلق"],["Al-Qadr","القدر"],["Al-Bayyinah","البينة"],["Az-Zalzalah","الزلزلة"],
-["Al-'Adiyat","العاديات"],["Al-Qari'ah","القارعة"],["At-Takathur","التكاثر"],
-["Al-'Asr","العصر"],["Al-Humazah","الهمزة"],["Al-Fil","الفيل"],["Quraysh","قريش"],
-["Al-Ma'un","الماعون"],["Al-Kawthar","الكوثر"],["Al-Kafirun","الكافرون"],["An-Nasr","النصر"],
-["Al-Masad","المسد"],["Al-Ikhlas","الإخلاص"],["Al-Falaq","الفلق"],["An-Nas","الناس"]
-];
+/* ================= SURAH DATABASE ================= */
 const N = 114;
+const SURAHS = [ /* [name, arabic, meaning, themes, place] place: M=Mecca D=Medina */
+["Al-Fatihah","الفاتحة","The Opening","guidance, prayer, path","M"],
+["Al-Baqarah","البقرة","The Cow","law, faith, covenant, stories","D"],
+["Ali 'Imran","آل عمران","Family of Imran","faith, patience, battle, guidance","D"],
+["An-Nisa","النساء","The Women","law, justice, society","D"],
+["Al-Ma'idah","المائدة","The Table Spread","law, covenant, fulfillment","D"],
+["Al-An'am","الأنعام","The Cattle","creation, signs, unity, warning","M"],
+["Al-A'raf","الأعراف","The Heights","warning, prophets, signs, judgment","M"],
+["Al-Anfal","الأنفال","The Spoils of War","battle, faith, strategy","D"],
+["At-Tawbah","التوبة","The Repentance","repentance, battle, hypocrisy, treaty","D"],
+["Yunus","يونس","Jonah","signs, prophets, patience, judgment","M"],
+["Hud","هود","Hud","warning, prophets, patience, judgment","M"],
+["Yusuf","يوسف","Joseph","providence, patience, dreams, forgiveness","M"],
+["Ar-Ra'd","الرعد","The Thunder","signs, revelation, creation","D"],
+["Ibrahim","ابراهيم","Abraham","prayer, signs, unity","M"],
+["Al-Hijr","الحجر","The Rocky Tract","warning, creation, consolation","M"],
+["An-Nahl","النحل","The Bee","signs, gratitude, creation","M"],
+["Al-Isra","الإسراء","The Night Journey","prayer, Israel, ethics","M"],
+["Al-Kahf","الكهف","The Cave","trials, wealth, time, knowledge","M"],
+["Maryam","مريم","Mary","mercy, prayer, devotion","M"],
+["Taha","طه","Ta-Ha","revelation, patience, prayer","M"],
+["Al-Anbiya","الأنبياء","The Prophets","prophets, judgment, mercy, signs","M"],
+["Al-Hajj","الحج","The Pilgrimage","worship, resurrection, signs","D"],
+["Al-Mu'minun","المؤمنون","The Believers","character, prayer, judgment","M"],
+["An-Nur","النور","The Light","light, chastity, law, society","D"],
+["Al-Furqan","الفرقان","The Criterion","patience, humility, judgment","M"],
+["Ash-Shu'ara","الشعراء","The Poets","prophets, warning, Musa","M"],
+["An-Naml","النمل","The Ant","signs, kingship, Solomon","M"],
+["Al-Qasas","القصص","The Stories","providence, Musa, exodus","M"],
+["Al-Ankabut","العنكبوت","The Spider","trials, prophets, warning","M"],
+["Ar-Rum","الروم","The Romans","signs, victory, creation","M"],
+["Luqman","لقمان","Luqman","wisdom, gratitude, warning","M"],
+["As-Sajdah","السجدة","The Prostration","creation, revelation, warning","M"],
+["Al-Ahzab","الأحزاب","The Combined Forces","battle, law, society","D"],
+["Saba","سبأ","Sheba","gratitude, judgment, signs","M"],
+["Fatir","فاطر","Originator","creation, angels, gratitude","M"],
+["Ya-Sin","يس","Ya-Sin","resurrection, signs, revelation","M"],
+["As-Saffat","الصافات","Those Who Set the Ranks","prophets, unity, judgment","M"],
+["Sad","ص","Sad","patience, Dawud, judgment","M"],
+["Az-Zumar","الزمر","The Troops","unity, judgment, sincerity","M"],
+["Ghafir","غافر","The Forgiver","forgiveness, Musa, prayer","M"],
+["Fussilat","فصلت","Explained in Detail","revelation, signs, patience","M"],
+["Ash-Shuraa","الشورى","The Consultation","revelation, unity, patience","M"],
+["Az-Zukhruf","الزخرف","The Ornaments of Gold","warning, prophets, unity","M"],
+["Ad-Dukhan","الدخان","The Smoke","exodus, judgment, warning","M"],
+["Al-Jathiyah","الجاثية","The Crouching","judgment, signs, warning","M"],
+["Al-Ahqaf","الأحقاف","The Wind-Curved Sandhills","patience, warning, Hud","M"],
+["Muhammad","محمد","Muhammad","battle, faith, charity","D"],
+["Al-Fath","الفتح","The Victory","victory, forgiveness, pledge","D"],
+["Al-Hujurat","الحجرات","The Rooms","manners, unity, brotherhood","D"],
+["Qaf","ق","Qaf","resurrection, warning, judgment","M"],
+["Adh-Dhariyat","الذاريات","The Winnowing Winds","provision, judgment, charity","M"],
+["At-Tur","الطور","The Mount","judgment, revelation, warning","M"],
+["An-Najm","النجم","The Star","revelation, ascension, warning","M"],
+["Al-Qamar","القمر","The Moon","judgment, exodus, warning","M"],
+["Ar-Rahman","الرحمن","The Beneficent","mercy, balance, bounties","D"],
+["Al-Waqi'ah","الواقعة","The Inevitable","judgment, paradise, hell","M"],
+["Al-Hadid","الحديد","The Iron","charity, light, victory","D"],
+["Al-Mujadila","المجادلة","The Pleading Woman","disputes, law, prayer","D"],
+["Al-Hashr","الحشر","The Exile","light, wisdom, exile","D"],
+["Al-Mumtahanah","الممتحنة","She Who Is Tested","loyalty, law, faith","D"],
+["As-Saff","الصف","The Ranks","struggle, faith, Isa","D"],
+["Al-Jumu'ah","الجمعة","Friday","prayer, provision, law","D"],
+["Al-Munafiqun","المنافقون","The Hypocrites","sincerity, charity, warning","D"],
+["At-Taghabun","التغابن","Mutual Disillusion","judgment, charity, warning","D"],
+["At-Talaq","الطلاق","Divorce","law, provision, wisdom","D"],
+["At-Tahrim","التحريم","The Prohibition","repentance, truth, family","D"],
+["Al-Mulk","الملك","The Sovereignty","creation, warning, judgment","M"],
+["Al-Qalam","القلم","The Pen","revelation, patience, trials","M"],
+["Al-Haqqah","الحاقة","The Reality","judgment, warning, truth","M"],
+["Al-Ma'arij","المعارج","The Ascensions","patience, prayer, judgment","M"],
+["Nuh","نوح","Noah","warning, patience, providence","M"],
+["Al-Jinn","الجن","The Jinn","revelation, warning, unity","M"],
+["Al-Muzzammil","المزمل","The Enshrouded One","night prayer, patience, revelation","M"],
+["Al-Muddathth","المدثر","The Cloaked One","warning, patience, judgment","M"],
+["Al-Qiyamah","القيامة","The Resurrection","resurrection, revelation, judgment","M"],
+["Al-Insan","الإنسان","Man","gratitude, charity, paradise","D"],
+["Al-Mursalat","المرسلات","Those Sent Forth","judgment, warning, truth","M"],
+["An-Naba","النبأ","The Tidings","judgment, creation, paradise","M"],
+["An-Nazi'at","النازعات","Those Who Drag Forth","judgment, exodus, warning","M"],
+["Abasa","عبس","He Frowned","equality, revelation, resurrection","M"],
+["At-Takwir","التكوير","The Overthrowing","judgment, revelation, truth","M"],
+["Al-Infitar","الانفطار","The Cleaving","judgment, records, warning","M"],
+["Al-Mutaffifin","المطففين","The Defrauders","justice, records, warning","M"],
+["Al-Inshiqaq","الانشقاق","The Sundering","judgment, deeds, warning","M"],
+["Al-Buruj","البروج","The Mansions of the Stars","persecution, patience, judgment","M"],
+["At-Tariq","الطارق","The Nightcomer","creation, protection, revelation","M"],
+["Al-A'la","الأعلى","The Most High","glorification, guidance, reminder","M"],
+["Al-Ghashiyah","الغاشية","The Overwhelming","judgment, humility, reminder","M"],
+["Al-Fajr","الفجر","The Dawn","nations, patience, soul at peace","M"],
+["Al-Balad","البلد","The City","charity, struggle, freedom","M"],
+["Ash-Shams","الشمس","The Sun","purification, Thamud, warning","M"],
+["Al-Layl","الليل","The Night","guidance, generosity, wealth","M"],
+["Ad-Duhaa","الضحى","The Morning Hours","consolation, orphan, generosity","M"],
+["Ash-Sharh","الشرح","The Relief","ease, patience, elevation","M"],
+["At-Tin","التين","The Fig","creation, deeds, balance","M"],
+["Al-'Alaq","العلق","The Clot","reading, knowledge, creation","M"],
+["Al-Qadr","القدر","The Power","night of decree, angels, peace","M"],
+["Al-Bayyinah","البينة","The Clear Proof","clarity, worship, book","D"],
+["Az-Zalzalah","الزلزلة","The Earthquake","deeds, judgment, earth","D"],
+["Al-'Adiyat","العاديات","The Courser","ingratitude, judgment, wealth","M"],
+["Al-Qari'ah","القارعة","The Calamity","judgment, scales, warning","M"],
+["At-Takathur","التكاثر","Rivalry in World Increase","wealth, grave, warning","M"],
+["Al-'Asr","العصر","The Declining Day","time, patience, truth","M"],
+["Al-Humazah","الهمزة","The Slanderer","gossip, wealth, hell","M"],
+["Al-Fil","الفيل","The Elephant","protection, Quraysh, signs","M"],
+["Quraysh","قريش","Quraysh","provision, trade, gratitude","M"],
+["Al-Ma'un","الماعون","Small Kindnesses","charity, prayer, hypocrisy","M"],
+["Al-Kawthar","الكوثر","The Abundance","consolation, prayer, gratitude","M"],
+["Al-Kafirun","الكافرون","The Disbelievers","distinction, worship, unity","M"],
+["An-Nasr","النصر","The Divine Support","victory, forgiveness, crowds","D"],
+["Al-Masad","المسد","The Palm Fibre","ruin, warning, Abu Lahab","M"],
+["Al-Ikhlas","الإخلاص","The Sincerity","unity, God, refuge","M"],
+["Al-Falaq","الفلق","The Daybreak","refuge, protection, darkness","M"],
+["An-Nas","الناس","Mankind","refuge, protection, whispers","M"]
+];
+/* chronological (revelation) order — Egyptian standard, Al-'Asr placed among the early Makkan shorts */
+const CHRONO = [96,68,73,74,1,111,81,87,92,89,93,94,100,108,102,103,107,109,105,113,114,112,53,80,97,91,85,95,106,101,75,104,77,50,90,86,54,38,7,72,36,25,35,19,44,20,56,26,27,28,17,10,11,12,15,6,37,31,34,39,40,41,42,43,44,45,46,51,88,18,16,71,14,21,23,32,52,67,69,70,78,79,82,84,30,29,83,2,8,3,33,60,4,99,57,47,13,55,76,65,98,59,24,22,63,58,49,66,64,61,62,48,5,9,110];
+const REV = {}; CHRONO.forEach((s,i)=>REV[s]=i+1);
+function tags(n){ return SURAHS[n-1][3].split(",").map(t=>t.trim()); }
+function sharedTags(a,b){ const B=new Set(b); return a.filter(t=>B.has(t)).length; }
+
+/* Quranic figures auto-linked to surahs where they feature prominently */
+const FIGURES = {
+"Musa":["Moses"], "Nuh":["Noah"], "Ibrahim":["Abraham"], "Isa":["Jesus","Messiah","Christ"],
+"Yusuf":["Joseph"], "Dawud":["David"], "Sulayman":["Solomon"], "Fir'awn":["Pharaoh"],
+"Maryam":["Mary"], "Harun":["Aaron"], "Yunus":["Jonah"], "Lut":["Lot"], "Adam":[],
+"Yahya":["John the Baptist"], "Zakariyya":["Zachariah"], "Hud":[], "Salih":["Saleh"],
+"Shu'ayb":["Jethro"], "Ayyub":["Job"], "Idris":["Enoch"], "Ismail":["Ishmael"],
+"Ishaq":["Isaac"], "Yaqub":["Jacob"], "Dhul-Qarnayn":["Dhu al-Qarnayn"], "Luqman":[],
+"Qarun":["Korah","Korah"], "Haman":[], "Jibril":["Gabriel"], "Talut":["Saul"],
+"Jalut":["Goliath"], "Bilqis":["Queen of Sheba"], "Abu Lahab":[], "Habil":["Abel"], "Qabil":["Cain"]
+};
+const FIGURE_SURAHS = {
+"Adam":[2,3,7,15,17,18,20,38],"Nuh":[7,11,23,26,29,37,54,71],"Ibrahim":[2,3,6,11,12,14,15,19,21,22,26,29,37,43,51,53,57,60,87],
+"Musa":[2,7,10,11,17,18,20,23,25,26,27,28,29,33,40,41,43,44,51,61,66,73,79,87],
+"Isa":[2,3,4,5,19,43,57,61],"Yusuf":[6,12,40,111],"Dawud":[2,4,5,17,21,27,34,38],
+"Sulayman":[2,21,27,34,38],"Fir'awn":[7,10,11,20,23,26,28,29,40,43,44,50,54,73,79],
+"Maryam":[3,19,66],"Harun":[2,4,7,10,19,20,21,23,25,26,28,37],"Yunus":[4,6,10,21,37,68],
+"Lut":[7,11,15,21,22,26,27,29,37,38,50,54],"Yahya":[3,6,19,21],"Zakariyya":[3,19,21],
+"Hud":[7,11,26,46],"Salih":[7,11,26,27,41],"Shu'ayb":[7,11,26,29],"Ayyub":[4,6,21,38],
+"Idris":[19,21],"Ismail":[2,3,4,6,14,19,21,38],"Ishaq":[2,3,4,6,11,12,19,21,29,37,38],
+"Yaqub":[2,3,4,11,12,19,21,38],"Dhul-Qarnayn":[18],"Luqman":[31],"Qarun":[28,29,40],
+"Haman":[28,29,40],"Jibril":[2,66,81,97],"Talut":[2],"Jalut":[2],"Bilqis":[27],
+"Abu Lahab":[111],"Habil":[5],"Qabil":[5]
+};
 
 /* ================= AUDIO (synthesized, no assets) ================= */
-let AC=null;
+let AC=null, soundOn=true;
 function ac(){ if(!AC){ try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} } if(AC&&AC.state==="suspended")AC.resume(); return AC; }
-let soundOn=true;
 function env(g,t,a,d,v){ g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(v,t+a); g.gain.exponentialRampToValueAtTime(.0001,t+a+d); }
 function tick(){ if(!soundOn||!ac())return; const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();
   o.type="square"; o.frequency.value=900+Math.random()*300; env(g,t,.002,.04,.08); o.connect(g).connect(AC.destination); o.start(t); o.stop(t+.06);}
@@ -287,6 +495,12 @@ function clack(){ if(!soundOn||!ac())return; const t=AC.currentTime,len=.08,buf=
   for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);
   const s=AC.createBufferSource(); s.buffer=buf; const f=AC.createBiquadFilter(); f.type="lowpass"; f.frequency.value=1200;
   const g=AC.createGain(); env(g,t,.002,.08,.25); s.connect(f).connect(g).connect(AC.destination); s.start(t);}
+function rightChime(){ if(!soundOn||!ac())return; const t=AC.currentTime;
+  [523.25,659.25,783.99].forEach((f,i)=>{ const o=AC.createOscillator(),g=AC.createGain(); o.type="sine"; o.frequency.value=f;
+    env(g,t+i*.08,.01,.5,.12); o.connect(g).connect(AC.destination); o.start(t+i*.08); o.stop(t+i*.08+.6); });}
+function wrongBuzz(){ if(!soundOn||!ac())return; const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();
+  o.type="sawtooth"; o.frequency.setValueAtTime(160,t); o.frequency.exponentialRampToValueAtTime(70,t+.35);
+  env(g,t,.01,.4,.15); o.connect(g).connect(AC.destination); o.start(t); o.stop(t+.45);}
 function gateChord(){ if(!soundOn||!ac())return; const t=AC.currentTime;
   [110,164.8,220,329.6,440].forEach((fr,i)=>{ const o=AC.createOscillator(),g=AC.createGain();
     o.type=i<2?"sawtooth":"sine"; o.frequency.value=fr;
@@ -298,16 +512,236 @@ function sealedThud(){ if(!soundOn||!ac())return; const t=AC.currentTime,o=AC.cr
   o.type="sine"; o.frequency.setValueAtTime(120,t); o.frequency.exponentialRampToValueAtTime(40,t+.3);
   env(g,t,.005,.3,.4); o.connect(g).connect(AC.destination); o.start(t); o.stop(t+.35);}
 
+/* ================= CHRONICLE DATABASE ================= */
+let DB = { people:{}, links:[], history:[] };
+try{ const d=JSON.parse(localStorage.getItem("lock114_db")||"null"); if(d&&d.people) DB=d; }catch(e){}
+function saveDB(){ localStorage.setItem("lock114_db", JSON.stringify(DB)); }
+
+const STOP = new Set(("a an and the in on at of to for with by from as is was were be been it its this that these those he she they them his her their i you we us our not no nor but or if then than so upon into out over under about after before while during against between within without through also very much more most own same too only just can could will would should shall may might must do does did done have has had having say said says go went gone come came comes get got gets make makes made see saw seen know knew known take took taken give gave given think thought when where who whom whose why how what which there here now new one two all any each other some such because while my me mine your yours his hers its ours their theirs day days man men woman women lord prophet messenger book surah verse verses allah god").split(" "));
+
+function normSurahName(s){ return s.toLowerCase().replace(/[''']/g,"'").replace(/[^a-z]/g,""); }
+const SURAH_NAME_MAP = {};
+SURAHS.forEach((s,i)=>{ SURAH_NAME_MAP[normSurahName(s[0])]=i+1; });
+
+function findSurahRefs(text){
+  const found=new Set();
+  const numRe=/(?:surah|sura|surat|chapter)\s*[:#]?\s*(\d{1,3})/gi;
+  let m; while((m=numRe.exec(text))){ const n=+m[1]; if(n>=1&&n<=N) found.add(n); }
+  const t=normSurahName(text);
+  Object.keys(SURAH_NAME_MAP).forEach(k=>{ if(k.length>3 && t.includes(k)) found.add(SURAH_NAME_MAP[k]); });
+  return [...found];
+}
+
+function extractNames(text){
+  const sentences=text.split(/[.!?;\n]+/);
+  const counts={};
+  sentences.forEach(sen=>{
+    const re=/(?:[A-Z][a-z''-]+)(?:(?:\s+(?:ibn|bin|bint|al)\s+|\s+)(?:[A-Z][a-z''-]+))*/g;
+    let m; while((m=re.exec(sen))){
+      const raw=m[0].replace(/\s+(?:Of|The)\s+/g," ").trim();
+      if(!raw||STOP.has(raw.toLowerCase()))continue;
+      const parts=raw.split(/\s+/).filter(p=>!STOP.has(p.toLowerCase()));
+      if(!parts.length)continue;
+      const name=parts.join(" ");
+      const key=name.toLowerCase();
+      counts[key]=counts[key]||{name,count:0};
+      counts[key].count++;
+    }
+  });
+  // keep multi-word or repeated, or Quranic figure matches
+  const figureKeys=Object.keys(FIGURES);
+  const figVariants={}; figureKeys.forEach(f=>{ figVariants[f.toLowerCase()]=f; FIGURES[f].forEach(v=>figVariants[v.toLowerCase()]=f); });
+  const out={};
+  Object.values(counts).forEach(c=>{
+    const key=c.name.toLowerCase();
+    if(figVariants[key]){ const f=figVariants[key]; out[f]=(out[f]||0)+c.count; return; }
+    if(c.count>=2 || c.name.split(" ").length>1) out[c.name]=(out[c.name]||0)+c.count;
+  });
+  return out; // {canonicalName: occurrences}
+}
+
+function weaveText(){
+  const ta=document.getElementById("chronText");
+  const text=ta.value.trim();
+  const msg=document.getElementById("chronMsg");
+  if(text.length<5){ msg.textContent="Write something first, traveler."; return; }
+  const refs=findSurahRefs(text);
+  const names=extractNames(text);
+  const nameKeys=Object.keys(names);
+  let added=0, linked=0;
+  nameKeys.forEach(canon=>{
+    const isFigure=!!FIGURE_SURAHS[canon];
+    const p=DB.people[canon]||{quranic:isFigure,surahs:isFigure?[...FIGURE_SURAHS[canon]]:[],notes:[]};
+    if(isFigure) p.quranic=true;
+    const before=p.surahs.length;
+    refs.forEach(r=>{ if(!p.surahs.includes(r)){ p.surahs.push(r); linked++; } });
+    p.notes.push({text:text.slice(0,200), surahs:[...refs], ts:Date.now()});
+    DB.people[canon]=p;
+    if(p.surahs.length>before) added++;
+  });
+  // threads: people co-appearing in one entry, via shared surah refs or the entry itself
+  for(let i=0;i<nameKeys.length;i++)for(let j=i+1;j<nameKeys.length;j++){
+    const a=nameKeys[i], b=nameKeys[j];
+    if(!DB.links.some(l=>(l.a===a&&l.b===b)||(l.a===b&&l.b===a)))
+      DB.links.push({a,b,via:refs.length?`surah ${refs.join(", ")}`:"your notes"});
+  }
+  saveDB(); ta.value="";
+  msg.textContent = nameKeys.length
+    ? `✦ Woven in: ${nameKeys.map(k=>k+(names[k]>1?" ×"+names[k]:"")).join(", ")}${refs.length?` — bound to surah ${refs.join(", ")}`:""}${added?` · ${added} new surah link(s)`:linked?"":" (no new surah links)"}`
+    : "No names found — try capitalized names or Quranic figures (Musa, Maryam…).";
+  renderChronicle(); renderCodex();
+}
+
+function personTitle(n){ const p=DB.people[n]; return n + (p&&p.quranic?" ☾":""); }
+
+function renderChronicle(){
+  const list=document.getElementById("peopleList"); list.innerHTML="";
+  const names=Object.keys(DB.people).sort();
+  if(!names.length){ list.innerHTML='<span style="color:#5d6478;font-size:13px;font-style:italic;">The chronicle is empty… for now.</span>'; }
+  names.forEach(n=>{
+    const p=DB.people[n];
+    const c=document.createElement("div"); c.className="chip";
+    c.innerHTML=`${personTitle(n)}<span class="ct">↝ ${p.surahs.join(", ")||"—"}</span>`;
+    c.onclick=()=>showPerson(n);
+    list.appendChild(c);
+  });
+  const conn=document.getElementById("connList");
+  conn.innerHTML = DB.links.length ? "" : '<span style="color:#5d6478;font-style:italic;">No threads yet — write about two people in one entry to bind them.</span>';
+  DB.links.slice().reverse().slice(0,20).forEach(l=>{
+    const d=document.createElement("div");
+    d.innerHTML=`<span class="lnk">${personTitle(l.a)}</span> ⇄ <span class="lnk">${personTitle(l.b)}</span> <span style="color:#5d6478;">— ${l.via}</span>`;
+    conn.appendChild(d);
+  });
+}
+function showPerson(n){
+  const p=DB.people[n];
+  const box=document.getElementById("entryDetail");
+  const notes=(p.notes||[]).slice(-5).map(x=>`<div>· "${x.text}" ${x.surahs.length?`<b>↝ surah ${x.surahs.join(", ")}</b>`:""}</div>`).join("");
+  box.innerHTML=`<div class="entryDetail"><b>${personTitle(n)}</b> — surahs: ${p.surahs.map(s=>s+"·"+SURAHS[s-1][0]).join(", ")||"—"}<br>${notes}
+  <button class="btn" style="padding:3px 10px;font-size:12px;margin-top:6px;" onclick="forgetPerson('${n.replace(/'/g,"\\'")}')">forget</button></div>`;
+}
+window.forgetPerson=n=>{ delete DB.people[n]; DB.links=DB.links.filter(l=>l.a!==n&&l.b!==n); saveDB(); renderChronicle(); renderCodex(); document.getElementById("entryDetail").innerHTML=""; };
+
+/* ================= SMART ENGINE ================= */
+function flowScore(opt, current){
+  let s=0;
+  const d=opt-current;
+  if(d===1) s+=40;                     // the very next surah — pure flow
+  else if(d>1) s+=Math.max(2, 24-d*1.2); // advances the journey toward 114
+  else if(d===0) s+=4;
+  else s+=Math.max(-12, d*1.5);        // backward flow resists
+  const rd=(REV[opt]||57)-(REV[current]||57);
+  if(rd>0) s+=Math.min(18, rd*.6);     // follows the order of revelation
+  return s;
+}
+function scoreOption(opt, current){
+  const curTags=tags(current), optTags=tags(opt);
+  let s=flowScore(opt,current);
+  const reasons=[];
+  if(opt===current+1) reasons.push("the very next surah — pure flow toward An-Nas");
+  else if(opt>current) reasons.push("advances the journey toward surah 114");
+  else reasons.push("looks back — the flow resists it");
+  const st=sharedTags(curTags,optTags);
+  if(st) { s+=st*7; reasons.push(`shares the theme of ${SURAHS[current-1][0]} (${optTags.filter(t=>curTags.includes(t)).join(", ")})`); }
+  // chronicle boosts
+  for(const name in DB.people){
+    if(DB.people[name].surahs.includes(opt)){
+      const w=12+Math.min(8,(DB.people[name].notes||[]).length*2);
+      s+=w; reasons.push(`echoes ${name} from your chronicle`);
+    }
+  }
+  // learned history
+  let okN=0,badN=0;
+  DB.history.forEach(h=>{ if(h.picked===opt){ h.ok?okN++:badN++; } });
+  if(okN){ s+=Math.min(12,okN*2.5); reasons.push(`the gate accepted it ${okN} time${okN>1?"s":""} before`); }
+  if(badN){ s-=Math.min(12,badN*3); reasons.push(`it has misled you ${badN} time${badN>1?"s":""} before`); }
+  return {s,reasons:reasons.slice(0,2)};
+}
+function guidanceStars(scores,idx){
+  const sorted=[...scores].sort((a,b)=>b.s-a.s);
+  const rank=sorted.indexOf(scores[idx]);
+  return "★".repeat(4-rank)+"☆".repeat(rank); // rank 0 = 4 stars
+}
+
+/* ================= PRAYER TIME LOGIC ================= */
+const PRAYER_ORDER=["Fajr","Dhuhr","Asr","Maghrib","Isha"];
+const DEFAULT_TIMES={Fajr:"05:45",Dhuhr:"12:55",Asr:"16:15",Maghrib:"18:25",Isha:"19:45"};
+let times=null, salt=localStorage.getItem("lock114_salt");
+if(!salt){ salt=Math.random().toString(36).slice(2)+"-"+Math.random().toString(36).slice(2); localStorage.setItem("lock114_salt",salt); }
+function toMin(hhmm){ const [h,m]=hhmm.split(":").map(Number); return h*60+m; }
+async function fetchPrayerTimes(){
+  try{
+    const manual=JSON.parse(localStorage.getItem("lock114_times")||"null");
+    if(manual&&Object.keys(manual).length){ times=manual; document.getElementById("geoStatus").textContent="your times"; return; }
+  }catch(e){}
+  document.getElementById("geoStatus").textContent="locating…";
+  try{
+    const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:8000}));
+    const {latitude:lat,longitude:lon}=pos.coords;
+    const d=new Date(), ds=`${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}`;
+    const r=await fetch(`https://api.aladhan.com/v1/timings/${ds}?latitude=${lat}&longitude=${lon}&method=2`);
+    const j=await r.json(); const t=j.data.timings;
+    times={}; for(const p of PRAYER_ORDER) times[p]=t[p].slice(0,5);
+    document.getElementById("geoStatus").textContent=`times · ${j.data.meta.timezone}`;
+    localStorage.setItem("lock114_geo",JSON.stringify({lat,lon,ds,times}));
+  }catch(e){
+    try{ const c=JSON.parse(localStorage.getItem("lock114_geo")||"null");
+      if(c&&c.times){ times=c.times; document.getElementById("geoStatus").textContent="cached times"; return; } }catch(_){}
+    times={...DEFAULT_TIMES};
+    document.getElementById("geoStatus").textContent="default times (set yours in ⚙)";
+  }
+}
+function currentInterval(){
+  if(!times) return null;
+  const now=new Date(), nowMin=now.getHours()*60+now.getMinutes();
+  const todays=PRAYER_ORDER.map(p=>({p,start:toMin(times[p])})).sort((a,b)=>a.start-b.start);
+  if(nowMin < todays[0].start){
+    const y=new Date(now); y.setDate(now.getDate()-1);
+    const key=`${y.getFullYear()}-${y.getMonth()+1}-${y.getDate()}|Isha`;
+    const nextTime=new Date(now.getFullYear(),now.getMonth(),now.getDate(),Math.floor(todays[0].start/60),todays[0].start%60);
+    return {name:"Isha", key, nextName:"Fajr", nextTime};
+  }
+  for(let i=0;i<todays.length;i++){
+    const cur=todays[i], next=todays[(i+1)%todays.length];
+    const nextTomorrow=i===todays.length-1;
+    if(nowMin>=cur.start && (nextTomorrow || nowMin<next.start)){
+      const key=`${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}|${cur.p}`;
+      let nextTime;
+      if(nextTomorrow){ nextTime=new Date(now); nextTime.setDate(now.getDate()+1);
+        nextTime.setHours(Math.floor(next.start/60), next.start%60, 0, 0); }
+      else nextTime=new Date(now.getFullYear(),now.getMonth(),now.getDate(),Math.floor(next.start/60),next.start%60);
+      return {name:cur.p, key, nextName:next.p, nextTime};
+    }
+  }
+  return null;
+}
+function hash32(str){ let h=2166136261>>>0;
+  for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); }
+  h^=h>>>13; h=Math.imul(h,0x5bd1e995); h^=h>>>15; return h>>>0; }
+function secretCode(){
+  const iv=currentInterval(); if(!iv) return [1,1,1];
+  return [hash32(iv.key+"|"+salt)%N+1, hash32(iv.key+"#2|"+salt)%N+1, hash32(iv.key+"#3|"+salt)%N+1];
+}
+let watchCache=null;
+function updateWatch(){
+  const iv=currentInterval(); if(!iv) return;
+  if(!watchCache||watchCache.key!==iv.key){ watchCache=iv; onWatchChanged(iv); }
+  document.getElementById("watchName").textContent=`${iv.name} → ${iv.nextName}`;
+  const ms=iv.nextTime-new Date();
+  const mins=Math.max(0,Math.floor(ms/60000)), secs=Math.max(0,Math.floor(ms/1000)%60);
+  document.getElementById("countdown").textContent=(mins>=60?Math.floor(mins/60)+"h ":"")+(mins%60)+"m "+secs+"s";
+}
+
 /* ================= WHEELS ================= */
-const ROW_H=52, COPIES=7; // copies of 1..114 for seamless wrap
+const ROW_H=52, COPIES=7;
 const chamber=document.getElementById("chamber");
 const statusEl=document.getElementById("status");
-let wheels=[], values=[1,1,1], cascade=true, isOpen=false, lastTickVal=[1,1,1];
+const challengeBox=document.getElementById("challenge");
+let wheels=[], values=[1,1,1], cascade=true, isOpen=false, freeMode=false;
 
 function buildWheels(){
-  chamber.innerHTML=""; wheels=[];
-  values=[1,1,1]; lastTickVal=[1,1,1];
-  for(let w=0; w<3; w++){
+  chamber.innerHTML=""; wheels=[]; values=[1,1,1];
+  for(let w=0;w<3;w++){
     if(w>0){ const c=document.createElement("div"); c.className="chain"; c.textContent="⛓"; chamber.appendChild(c); }
     const col=document.createElement("div"); col.className="wheelCol";
     const up=document.createElement("button"); up.className="arr"; up.textContent="▲";
@@ -315,7 +749,7 @@ function buildWheels(){
     const strip=document.createElement("div"); strip.className="strip";
     for(let c=0;c<COPIES;c++) for(let v=1;v<=N;v++){
       const cell=document.createElement("div"); cell.className="cell";
-      cell.innerHTML=`${v}<span class="ar">${SURAS[v-1][1]}</span>`;
+      cell.innerHTML=`${v}<span class="ar">${SURAHS[v-1][1]}</span>`;
       strip.appendChild(cell);
     }
     wheel.appendChild(strip);
@@ -324,158 +758,152 @@ function buildWheels(){
     const down=document.createElement("button"); down.className="arr"; down.textContent="▼";
     const name=document.createElement("div"); name.className="wheelName";
     col.append(up,wheel,down,name); chamber.appendChild(col);
-
-    const state={el:wheel,strip,name,up,down,idx:w};
-    let drag=null;
-    const setVal=(nv,silent)=>{ nv=((nv-1)%N+N)%N+1; if(nv===values[w])return;
-      const delta=nv-values[w];
-      // cascade: wheels BELOW this one shift by same delta (mod 114)
-      if(cascade && w<2){ values[w]=nv; applyWheel(w,false,true); for(let k=w+1;k<3;k++){ values[k]=((values[k]+delta-1)%N+N)%N+1; applyWheel(k,false,true);} }
-      else { values[w]=nv; applyWheel(w,false,true); }
-      tick();
-      if(!silent) checkLock();
-      updateNames();
-    };
-    up.onclick=()=>setVal(values[w]-1);
-    down.onclick=()=>setVal(values[w]+1);
-    wheel.addEventListener("wheel",e=>{ e.preventDefault(); setVal(values[w]+(e.deltaY>0?1:-1)); },{passive:false});
-    wheel.addEventListener("pointerdown",e=>{ drag={y:e.clientY,moved:0}; wheel.setPointerCapture(e.pointerId); });
-    wheel.addEventListener("pointermove",e=>{ if(!drag)return; const dy=e.clientY-drag.y; drag.moved=dy;
-      const steps=Math.round(dy/ROW_H); if(steps!==0){ drag.y+=steps*ROW_H; setVal(values[w]-steps); } });
-    wheel.addEventListener("pointerup",e=>{ if(drag&&Math.abs(drag.moved)<4){ // tap: upper half up, lower half down
-        const r=wheel.getBoundingClientRect(); setVal(values[w]+(e.clientY<r.top+ROW_H*1.5?-1:1)); } drag=null; });
-    wheels.push(state);
+    wheels.push({el:wheel,strip,name,idx:w});
+    const bind=(el)=>el.addEventListener("pointerdown",e=>{ if(freeMode) manualTurn(w, e.clientY<wheel.getBoundingClientRect().top+ROW_H*1.5?-1:1); });
+    bind(up); bind(down); bind(wheel);
+    wheel.addEventListener("wheel",e=>{ if(freeMode){ e.preventDefault(); manualTurn(w, e.deltaY>0?1:-1); } },{passive:false});
   }
-  for(let w=0;w<3;w++) applyWheel(w,false,true);
+  for(let w=0;w<3;w++) applyWheel(w,false);
   updateNames();
 }
-function applyWheel(w,animate=true,silent=false){
+function manualTurn(w,dir){
+  if(isOpen)return;
+  const affected=(cascade&&w<2)?Array.from({length:3-w},(_,k)=>w+k):[w];
+  affected.forEach(k=>{ values[k]=mod(values[k]+dir); applyWheel(k,true,true); });
+  tick(); updateNames(); checkLockManual();
+}
+function mod(v){ return ((v-1)%N+N)%N+1; }
+function applyWheel(w,animate=true){
   const s=wheels[w], v=values[w];
-  const base=(3*N + (v-1)) * ROW_H;      // middle copy, current row lands centered
-  s.strip.style.transition = animate ? "transform .28s cubic-bezier(.2,.8,.3,1)" : "none";
-  s.strip.style.transform = `translateY(${ROW_H - base}px)`;
-  // normalize deep into middle copy when idle to avoid drift
-  if(!animate){ s.strip.getBoundingClientRect(); }
-  if(!silent && v!==lastTickVal[w]){ clack(); lastTickVal[w]=v; }
-  const el=s.el;
+  const base=(3*N+(v-1))*ROW_H;
+  s.strip.style.transition=animate?"transform .28s cubic-bezier(.2,.8,.3,1)":"none";
+  s.strip.style.transform=`translateY(${ROW_H-base}px)`;
 }
 function updateNames(){
-  wheels.forEach((s,w)=>{ const [en,ar]=SURAS[values[w]-1];
-    s.name.innerHTML=`<span class="ar">${ar}</span>${en}`; });
+  wheels.forEach((s,w)=>{ const [en,ar]=SURAHS[values[w]-1]; s.name.innerHTML=`<span class="ar">${ar}</span>${en}`; });
 }
-
-/* ================= PRAYER TIME LOGIC ================= */
-const PRAYER_ORDER=["Fajr","Dhuhr","Asr","Maghrib","Isha"];
-const DEFAULT_TIMES={Fajr:"05:45",Dhuhr:"12:55",Asr:"16:15",Maghrib:"18:25",Isha:"19:45"};
-let times=null; // {Fajr:"HH:MM",...}
-let salt=localStorage.getItem("lock114_salt");
-if(!salt){ salt=Math.random().toString(36).slice(2)+"-"+Math.random().toString(36).slice(2); localStorage.setItem("lock114_salt",salt); }
-
-function toMin(hhmm){ const [h,m]=hhmm.split(":").map(Number); return h*60+m; }
-function loadManual(){ try{ return JSON.parse(localStorage.getItem("lock114_times")||"null"); }catch(e){ return null; } }
-
-async function fetchPrayerTimes(){
-  const manual=loadManual();
-  if(manual){ times=manual; document.getElementById("geoStatus").textContent="manual times"; return; }
-  document.getElementById("geoStatus").textContent="locating…";
-  try{
-    const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:8000}));
-    const {latitude:lat,longitude:lon}=pos.coords;
-    const d=new Date(), ds=`${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}`;
-    const r=await fetch(`https://api.aladhan.com/v1/timings/${ds}?latitude=${lat}&longitude=${lon}&method=2`);
-    const j=await r.json();
-    const t=j.data.timings;
-    times={}; for(const p of PRAYER_ORDER) times[p]=t[p].slice(0,5);
-    document.getElementById("geoStatus").textContent=`times for ${j.data.meta.timezone}`;
-    localStorage.setItem("lock114_geo",JSON.stringify({lat,lon,date:ds,times}));
-  }catch(e){
-    // cached?
-    try{
-      const c=JSON.parse(localStorage.getItem("lock114_geo")||"null");
-      if(c&&c.times){ times=c.times; document.getElementById("geoStatus").textContent="cached times"; return; }
-    }catch(_){}
-    times={...DEFAULT_TIMES};
-    document.getElementById("geoStatus").textContent="default times (set yours in ⚙)";
-  }
-}
-
-function currentInterval(){
-  if(!times) return null;
-  const now=new Date(), nowMin=now.getHours()*60+now.getMinutes();
-  const todays=PRAYER_ORDER.map(p=>({p,start:toMin(times[p])})).sort((a,b)=>a.start-b.start);
-  // pre-Fajr: still last night's Isha watch (key anchored to yesterday's Isha)
-  if(nowMin < todays[0].start){
-    const y=new Date(now); y.setDate(now.getDate()-1);
-    const key=`${y.getFullYear()}-${y.getMonth()+1}-${y.getDate()}|Isha`;
-    const nextTime=new Date(now.getFullYear(),now.getMonth(),now.getDate(),Math.floor(todays[0].start/60),todays[0].start%60);
-    return {name:"Isha", key, nextName:"Fajr", nextTime};
-  }
-  // find interval containing now
-  for(let i=0;i<todays.length;i++){
-    const cur=todays[i], next=todays[(i+1)%todays.length];
-    const nextTomorrow = i===todays.length-1;
-    if(nowMin>=cur.start && (nextTomorrow || nowMin<next.start)){
-      const key=`${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}|${cur.p}`;
-      let nextTime;
-      if(nextTomorrow){
-        nextTime=new Date(now); nextTime.setDate(now.getDate()+1);
-        nextTime.setHours(Math.floor(next.start/60), next.start%60, 0, 0);
-      }else{
-        nextTime=new Date(now.getFullYear(),now.getMonth(),now.getDate(),Math.floor(next.start/60),next.start%60);
-      }
-      return {name:cur.p, key, nextName:next.p, nextTime};
-    }
-  }
-  return null;
-}
-
-/* deterministic pseudo-random code per interval */
-function hash32(str){ let h=2166136261>>>0;
-  for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); }
-  h^=h>>>13; h=Math.imul(h,0x5bd1e995); h^=h>>>15; return h>>>0; }
-function secretCode(){
-  const iv=currentInterval(); if(!iv) return [1,1,1];
-  const h1=hash32(iv.key+"|"+salt), h2=hash32(iv.key+"#2|"+salt), h3=hash32(iv.key+"#3|"+salt);
-  return [h1%N+1, h2%N+1, h3%N+1];
-}
-
-function updateWatch(){
-  const iv=currentInterval(); if(!iv) return;
-  document.getElementById("watchName").textContent=
-    `${iv.name} → ${iv.nextName}`;
-  const ms=iv.nextTime-new Date();
-  const mins=Math.max(0,Math.floor(ms/60000)), secs=Math.max(0,Math.floor(ms/1000)%60);
-  const hrs=Math.floor(mins/60);
-  document.getElementById("countdown").textContent =
-    (hrs>0?hrs+"h ":"") + (mins%60)+"m "+secs+"s";
-  // if interval changed while open, reseal
-  if(isOpen && iv.key!==openKey){ sealGate(); checkLock(true); }
-}
-
-/* ================= LOCK / GATE ================= */
-let openKey=null;
-function checkLock(silent){
+function checkLockManual(){
   const code=secretCode(), iv=currentInterval();
-  const match = iv && values[0]===code[0] && values[1]===code[1] && values[2]===code[2];
-  if(match && !isOpen) openGate(iv);
-  else if(!match && isOpen) sealGate();
-  else if(!match && !silent){
-    statusEl.textContent="The gate holds fast… the tumblers resist you.";
-    statusEl.classList.add("err");
+  const match=iv&&values.every((v,i)=>v===code[i]);
+  if(match&&!isOpen) openGate(iv);
+  else if(!match&&isOpen) sealGate();
+  else if(!match){
+    statusEl.classList.add("err"); statusEl.textContent="The gate holds fast… the tumblers resist you.";
     document.getElementById("chamber").classList.remove("shake");
     void document.getElementById("chamber").offsetWidth;
     document.getElementById("chamber").classList.add("shake");
     sealedThud();
     setTimeout(()=>{statusEl.classList.remove("err"); statusEl.textContent="The gate is sealed. The combination shifts with every prayer…";},1800);
   }
-  wheels.forEach((s,w)=> s.el.classList.toggle("hot", match && values[w]===code[w]));
+  wheels.forEach((s,w)=>s.el.classList.toggle("hot",!!match&&values[w]===code[w]));
 }
+
+/* ================= CHALLENGE MODE ================= */
+let challenge={wheelIdx:0, options:[], correct:0, active:false, position:1};
+function onWatchChanged(iv){
+  if(isOpen) sealGate();
+  resetChallenges();
+}
+function resetChallenges(){
+  challenge={wheelIdx:0, options:[], correct:0, active:false, position:1};
+  values=[1,1,1]; for(let w=0;w<3;w++) applyWheel(w,false);
+  updateNames();
+  if(!freeMode) nextChallenge();
+}
+function makeOptions(correct,current){
+  const set=new Set([correct]);
+  const cand=[];
+  for(let d=1;d<=12;d++){ const n=mod(current+d); if(n!==correct)cand.push({n,w:3}); const b=mod(current-d); if(b!==correct)cand.push({n:b,w:1}); }
+  for(let n=1;n<=N;n++){ if(n!==correct&&sharedTags(tags(n),tags(correct))) cand.push({n,w:2}); }
+  for(const p in DB.people) DB.people[p].surahs.forEach(n=>{ if(n!==correct) cand.push({n,w:3}); });
+  for(let tries=0;tries<40&&set.size<4;tries++){
+    // weighted pick
+    const tot=cand.reduce((a,c)=>a+c.w,0); let r=Math.random()*tot, pick=cand[0].n;
+    for(const c of cand){ r-=c.w; if(r<=0){ pick=c.n; break; } }
+    set.add(pick);
+  }
+  while(set.size<4) set.add(Math.floor(Math.random()*N)+1);
+  return [...set].sort(()=>Math.random()-.5);
+}
+function nextChallenge(){
+  if(challenge.wheelIdx>=3){ const iv=currentInterval(); if(iv) openGate(iv); return; }
+  const code=secretCode();
+  const current=challenge.wheelIdx===0?1:values[challenge.wheelIdx-1];
+  challenge.correct=code[challenge.wheelIdx];
+  challenge.options=makeOptions(challenge.correct,current);
+  challenge.active=true;
+  challengeBox.classList.add("show");
+  document.getElementById("challengeQ").textContent=
+    `Wheel ${["one","two","three"][challenge.wheelIdx]} — which surah continues the path?`;
+  const grid=document.getElementById("optsGrid"); grid.innerHTML="";
+  const scored=challenge.options.map(o=>({o,...scoreOption(o,current)}));
+  const maxS=Math.max(...scored.map(x=>x.s)), minS=Math.min(...scored.map(x=>x.s));
+  scored.forEach((sc,i)=>{
+    const [en,ar,mn]=SURAHS[sc.o-1];
+    const b=document.createElement("button"); b.className="opt";
+    const rel=(maxS-minS)>0?(sc.s-minS)/(maxS-minS):0.5;
+    const stars="★".repeat(1+Math.round(rel*3))+"☆".repeat(3-Math.round(rel*3));
+    b.innerHTML=`<span class="num">${sc.o}</span><span class="nm">${en} <span class="ar" style="color:var(--gold-dim);font-size:13px;">${ar}</span></span>
+      <span class="mn">${mn} · ${sc.o===current+1?"next in the mus'haf":"rev. #"+(REV[sc.o]||"?")}</span>
+      <span class="guide">${stars} — ${sc.reasons[0]}</span>`;
+    b.onclick=()=>pickOption(i,b,scored);
+    grid.appendChild(b);
+  });
+  document.getElementById("progress").textContent="◈ ".repeat(challenge.wheelIdx)+"◇ ".repeat(3-challenge.wheelIdx);
+  statusEl.classList.remove("err","good");
+  statusEl.textContent="The gate whispers its riddle. Choose with the flow…";
+}
+function pickOption(i,btn,scored){
+  if(!challenge.active)return;
+  const chosen=scored[i].o, ok=chosen===challenge.correct;
+  DB.history.push({ts:Date.now(),key:watchCache?watchCache.key:"",wheel:challenge.wheelIdx,correct:challenge.correct,picked:chosen,ok});
+  if(DB.history.length>400)DB.history=DB.history.slice(-400);
+  saveDB();
+  challenge.active=false;
+  scored.forEach((sc,j)=>{ const b=document.getElementById("optsGrid").children[j];
+    if(j===i) b.classList.add(ok?"picked-right":"picked-wrong");
+    else b.classList.add("dim");
+    if(!ok&&sc.o===challenge.correct) b.classList.add("picked-right"); });
+  if(ok){
+    rightChime();
+    values[challenge.wheelIdx]=challenge.correct;
+    applyWheel(challenge.wheelIdx,true,true); clack();
+    wheels[challenge.wheelIdx].el.classList.add("hot");
+    updateNames();
+    statusEl.classList.add("good");
+    statusEl.textContent=`✦ ${SURAHS[chosen-1][0]} falls into place — the tumbler turns.`;
+    challenge.wheelIdx++;
+    if(challenge.wheelIdx>=3){ setTimeout(()=>{ const iv=currentInterval(); if(iv)openGate(iv); },700); challengeBox.classList.remove("show"); return; }
+    setTimeout(()=>{ statusEl.classList.remove("good"); nextChallenge(); },1100);
+  }else{
+    wrongBuzz();
+    document.getElementById("chamber").classList.remove("shake");
+    void document.getElementById("chamber").offsetWidth;
+    document.getElementById("chamber").classList.add("shake");
+    statusEl.classList.add("err");
+    const c=SURAHS[challenge.correct-1];
+    statusEl.textContent=`The gate resists… it was waiting for ${c[0]} (${challenge.correct}). Watch the flow anew.`;
+    setTimeout(()=>{ statusEl.classList.remove("err"); challenge.position=values[Math.max(0,challenge.wheelIdx-1)]||1; nextChallenge(); },2200);
+  }
+  renderCodex(); // learned weights changed
+}
+function setMode(){
+  document.getElementById("challenge").classList.toggle("show",!freeMode);
+  document.getElementById("gateHint").textContent=freeMode
+    ? "Drag / scroll / arrow keys a wheel · cascade shifts the wheels below (mod 114)"
+    : "In challenge mode the gate asks — answer with the flow of the Qur'an";
+  wheels.forEach(w=>w.el.classList.toggle("locked",!freeMode));
+  if(!freeMode) resetChallenges();
+  else { challengeBox.classList.remove("show"); statusEl.textContent="The gate is sealed. The combination shifts with every prayer…"; }
+}
+
+/* ================= GATE ================= */
 function openGate(iv){
-  isOpen=true; openKey=iv.key;
+  isOpen=true;
   gateChord();
   const code=secretCode();
   document.getElementById("beyondVerse").textContent=
-    `Surah ${code[0]} · ${code[1]} · ${code[2]} — ${SURAS[code[0]-1][0]}, ${SURAS[code[1]-1][0]}, ${SURAS[code[2]-1][0]}`;
+    `${SURAS[code[0]-1][0]} · ${SURAS[code[1]-1][0]} · ${SURAS[code[2]-1][0]} — the path flowed from Al-Fatihah toward An-Nas.`;
   document.getElementById("gate").classList.add("open");
   const sf=document.getElementById("sparkleField"); sf.innerHTML="";
   for(let i=0;i<40;i++){ const sp=document.createElement("div"); sp.className="spark";
@@ -484,66 +912,92 @@ function openGate(iv){
     sf.appendChild(sp); }
   statusEl.textContent="The ancient doors groan and part…";
 }
-function sealGate(){
-  if(!isOpen) return; isOpen=false; openKey=null;
-  document.getElementById("gate").classList.remove("open");
-  sealedThud();
+function sealGate(){ if(!isOpen)return; isOpen=false;
+  document.getElementById("gate").classList.remove("open"); sealedThud();
   statusEl.textContent="The gate is sealed once more. Watch the prayers…";
 }
-document.getElementById("sealBtn").onclick=()=>{ sealGate(); // reset wheels so it isn't instantly still matching? it will match again — fine, keeps open; user asked lock, keep simple
+document.getElementById("sealBtn").onclick=()=>sealGate();
+
+/* ================= CODEX TABLE ================= */
+function renderCodex(){
+  const q=(document.getElementById("codexSearch").value||"").toLowerCase();
+  const tb=document.getElementById("codexBody"); tb.innerHTML="";
+  const byRev=[...Array(N)].map((_,i)=>i+1).sort((a,b)=>(REV[a]||999)-(REV[b]||999));
+  byRev.forEach(n=>{
+    const [en,ar,mn,th,pl]=SURAHS[n-1];
+    const peopleHere=Object.keys(DB.people).filter(p=>DB.people[p].surahs.includes(n));
+    const hay=(n+" "+en+" "+mn+" "+th+" "+peopleHere.join(" ")).toLowerCase();
+    if(q&&!hay.includes(q))return;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td class="cnum">${n}</td><td>#${REV[n]||"?"}</td><td>${en} <span style="color:var(--gold-dim)">${ar}</span></td>
+      <td style="font-style:italic;">${mn}</td><td>${pl==="M"?"Mecca":"Medina"}</td><td style="font-size:12px;color:#8b93a8;">${th}</td>
+      <td class="peopleCell">${peopleHere.map(personTitle).join(", ")||""}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+/* ================= CHRONICLE EXPORT/IMPORT ================= */
+document.getElementById("exportBtn").onclick=()=>{
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="chronicle-114.json"; a.click();
+};
+document.getElementById("importBtn").onclick=()=>document.getElementById("importFile").click();
+document.getElementById("importFile").onchange=e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result);
+    if(d.people){ DB=d; saveDB(); renderChronicle(); renderCodex(); } }catch(err){} }; r.readAsText(f);
+};
+document.getElementById("clearBtn").onclick=()=>{
+  if(confirm("Forget all people, threads and learned choices?")){ DB={people:{},links:[],history:[]}; saveDB(); renderChronicle(); renderCodex(); }
 };
 
 /* ================= UI WIRING ================= */
-document.getElementById("gearBtn").onclick=()=>{ 
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+  t.classList.add("active"); document.getElementById("view-"+t.dataset.view).classList.add("active");
+});
+document.getElementById("weaveBtn").onclick=weaveText;
+document.getElementById("codexSearch").oninput=renderCodex;
+document.getElementById("gearBtn").onclick=()=>{
   document.getElementById("settings").classList.add("show");
   if(times) PRAYER_ORDER.forEach(p=>document.getElementById("t"+p).value=times[p]||"");
+  document.getElementById("modeChk").checked=freeMode;
+  document.getElementById("cascadeChk").checked=cascade;
+  document.getElementById("soundChk").checked=soundOn;
 };
 document.getElementById("closeSettings").onclick=()=>{
   const manual={};
   PRAYER_ORDER.forEach(p=>{ const v=document.getElementById("t"+p).value; if(v) manual[p]=v; });
-  if(Object.keys(manual).length) localStorage.setItem("lock114_times", JSON.stringify(manual));
+  if(Object.keys(manual).length) localStorage.setItem("lock114_times",JSON.stringify(manual));
   else localStorage.removeItem("lock114_times");
+  freeMode=document.getElementById("modeChk").checked;
+  localStorage.setItem("lock114_free",freeMode?"1":"0");
   cascade=document.getElementById("cascadeChk").checked;
-  localStorage.setItem("lock114_cascade", cascade?"1":"0");
+  localStorage.setItem("lock114_cascade",cascade?"1":"0");
   soundOn=document.getElementById("soundChk").checked;
-  localStorage.setItem("lock114_sound", soundOn?"1":"0");
+  localStorage.setItem("lock114_sound",soundOn?"1":"0");
   document.getElementById("settings").classList.remove("show");
-  fetchPrayerTimes().then(()=>{ checkLock(true); });
+  fetchPrayerTimes().then(()=>{ updateWatch(); setMode(); });
 };
-document.getElementById("crest").addEventListener("click",(e)=>{
-  // triple click reveals code for 5s (for testing)
+let crestClicks=0, crestLast=0;
+document.getElementById("crest").addEventListener("click",()=>{
   const now=Date.now(); crestClicks=(now-(crestLast||0)<600)?crestClicks+1:1; crestLast=now;
   if(crestClicks>=3){ crestClicks=0; const code=secretCode();
-    statusEl.textContent=`👁 Today's code: ${code.join(" · ")} — ${SURAS[code[0]-1][0]}, ${SURAS[code[1]-1][0]}, ${SURAS[code[2]-1][0]}`;
+    statusEl.textContent=`👁 This watch's code: ${code.join(" · ")}`;
     setTimeout(()=>{ if(!isOpen) statusEl.textContent="The gate is sealed. The combination shifts with every prayer…"; },6000);
-  }
-});
-let crestClicks=0, crestLast=0;
-
-/* keyboard */
-document.addEventListener("keydown",e=>{
-  if(document.getElementById("settings").classList.contains("show"))return;
-  const k=e.key; let target=-1,dir=0;
-  if(k==="ArrowUp"){target=0;dir=-1;} if(k==="ArrowDown"){target=0;dir=1;}
-  if(k==="q"||k==="Q"){target=1;dir=-1;} if(k==="a"||k==="A"){target=1;dir=1;}
-  if(k==="p"||k==="P"){target=2;dir=-1;} if(k==="l"||k==="L"){target=2;dir=1;}
-  if(target>=0){ e.preventDefault(); const v=values[target]+dir; 
-    if(cascade&&target<2){ const d=v-values[target]; values[target]=((v-1)%N+N)%N+1; applyWheel(target,true,true);
-      for(let kk=target+1;kk<3;kk++){ values[kk]=((values[kk]+d-1)%N+N)%N+1; applyWheel(kk,true,true);} tick(); }
-    else { values[target]=((v-1)%N+N)%N+1; applyWheel(target,true,true); tick(); }
-    updateNames(); checkLock();
   }
 });
 
 /* ================= BOOT ================= */
 buildWheels();
-cascade = localStorage.getItem("lock114_cascade")!=="0";
-soundOn = localStorage.getItem("lock114_sound")!=="0";
-document.getElementById("cascadeChk").checked=cascade;
-document.getElementById("soundChk").checked=soundOn;
-fetchPrayerTimes().then(()=>{ updateWatch(); checkLock(true); });
+freeMode=localStorage.getItem("lock114_free")==="1";
+cascade=localStorage.getItem("lock114_cascade")!=="0";
+soundOn=localStorage.getItem("lock114_sound")!=="0";
+renderChronicle(); renderCodex();
+fetchPrayerTimes().then(()=>{ updateWatch(); setMode(); });
 setInterval(updateWatch,1000);
-setInterval(()=>{ checkLock(true); },30000); // re-evaluate after prayer rollover
 </script>
 </body>
 </html>
