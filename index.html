@@ -271,6 +271,12 @@
     <textarea id="chronText" placeholder="e.g. Today I thought of Musa and his brother Harun facing Fir'awn — surah 20. Aisha reminded me of the verses on patience in Al-Baqarah. Yusuf forgave his brothers (surah 12)…"></textarea>
     <button class="btn" id="weaveBtn">✦ Weave into the Codex</button>
     <div id="chronMsg" style="font-size:13px;color:var(--glow);margin-top:8px;"></div>
+    <div id="feedBox" style="margin-top:20px; border-top:1px solid rgba(212,175,55,.2); padding-top:14px;">
+      <h3 style="margin-top:0;">📡 Live ayah feed</h3>
+      <div style="font-size:13px;color:#9aa3b8;" id="feedStatus">Idle — set a Surah Recorder URL in ⚙ settings.</div>
+      <button class="btn" id="syncBtn" style="margin-top:8px;">⟳ Sync now</button>
+      <div id="feedLog" style="margin-top:10px;font-size:13px;color:#b8c4d8;line-height:1.8;"></div>
+    </div>
     <h3 style="margin-top:22px;">People in your chronicle</h3>
     <div class="peopleList" id="peopleList"></div>
     <div id="entryDetail"></div>
@@ -331,6 +337,10 @@
     <div class="row"><input type="checkbox" id="modeChk"> <span>Free spin mode (turn wheels by hand, no challenges)</span></div>
     <div class="row"><input type="checkbox" id="cascadeChk" checked> <span>Cascade: turning a wheel shifts the wheels below it (free spin)</span></div>
     <div class="row"><input type="checkbox" id="soundChk" checked> Sound</div>
+    <label style="margin-top:16px;">📡 Live ayah feed — Surah Recorder URL (polled every 10 min)</label>
+    <input type="url" id="feedUrl" placeholder="https://raw.githubusercontent.com/you/recorder/main/feed.json"
+      style="width:100%; background:#0d0f16; color:#e8e2d0; border:1px solid #3a4054; border-radius:8px; padding:6px 10px; font-family:inherit; user-select:text;">
+    <div style="font-size:12px;color:#8b93a8;margin-top:4px;">Accepts JSON like {"surah":18,"ayah":5,"note":"…","ts":1710000000000} (or an array of them), or plain text containing “surah 18 ayah 5” / “18:5”. Ayah text is fetched to sense the people &amp; events in it.</div>
     <button id="closeSettings">Close</button>
   </div>
 </div>
@@ -517,7 +527,7 @@ let DB = { people:{}, links:[], history:[] };
 try{ const d=JSON.parse(localStorage.getItem("lock114_db")||"null"); if(d&&d.people) DB=d; }catch(e){}
 function saveDB(){ localStorage.setItem("lock114_db", JSON.stringify(DB)); }
 
-const STOP = new Set(("a an and the in on at of to for with by from as is was were be been it its this that these those he she they them his her their i you we us our not no nor but or if then than so upon into out over under about after before while during against between within without through also very much more most own same too only just can could will would should shall may might must do does did done have has had having say said says go went gone come came comes get got gets make makes made see saw seen know knew known take took taken give gave given think thought when where who whom whose why how what which there here now new one two all any each other some such because while my me mine your yours his hers its ours their theirs day days man men woman women lord prophet messenger book surah verse verses allah god").split(" "));
+const STOP = new Set(("a an and the in on at of to for with by from as is was were be been it its this that these those he she they them his her their i you we us our not no nor but or if then than so upon into out over under about after before while during against between within without through also very much more most own same too only just can could will would should shall may might must do does did done have has had having say said says go went gone come came comes get got gets make makes made see saw seen know knew known take took taken give gave given think thought when where who whom whose why how what which there here now new one two all any each other some such because while my me mine your yours his hers its ours their theirs day days man men woman women lord prophet messenger book surah verse verses allah god say says said indeed behold o lo verily thus none except every there when where whoever whatsoever").split(" "));
 
 function normSurahName(s){ return s.toLowerCase().replace(/[''']/g,"'").replace(/[^a-z]/g,""); }
 const SURAH_NAME_MAP = {};
@@ -560,13 +570,20 @@ function extractNames(text){
   return out; // {canonicalName: occurrences}
 }
 
-function weaveText(){
-  const ta=document.getElementById("chronText");
-  const text=ta.value.trim();
-  const msg=document.getElementById("chronMsg");
-  if(text.length<5){ msg.textContent="Write something first, traveler."; return; }
+function scanFigures(text){
+  const low=" "+text.toLowerCase().replace(/[^a-z' ]/g," ")+" ";
+  const found={};
+  for(const f in FIGURES){
+    const variants=[f.toLowerCase(),...FIGURES[f].map(v=>v.toLowerCase())];
+    if(variants.some(v=>low.includes(" "+v+" "))) found[f]=(found[f]||0)+1;
+  }
+  return found;
+}
+function weaveIntoDB(text){
   const refs=findSurahRefs(text);
   const names=extractNames(text);
+  const figures=scanFigures(text);
+  for(const f in figures) names[f]=(names[f]||0)+figures[f];
   const nameKeys=Object.keys(names);
   let added=0, linked=0;
   nameKeys.forEach(canon=>{
@@ -585,12 +602,101 @@ function weaveText(){
     if(!DB.links.some(l=>(l.a===a&&l.b===b)||(l.a===b&&l.b===a)))
       DB.links.push({a,b,via:refs.length?`surah ${refs.join(", ")}`:"your notes"});
   }
-  saveDB(); ta.value="";
+  saveDB();
+  return {names:nameKeys, refs, added};
+}
+function weaveText(){
+  const ta=document.getElementById("chronText");
+  const text=ta.value.trim();
+  const msg=document.getElementById("chronMsg");
+  if(text.length<5){ msg.textContent="Write something first, traveler."; return; }
+  const {names,refs,added}=weaveIntoDB(text);
+  const nameKeys=Object.keys(names);
+  ta.value="";
   msg.textContent = nameKeys.length
-    ? `✦ Woven in: ${nameKeys.map(k=>k+(names[k]>1?" ×"+names[k]:"")).join(", ")}${refs.length?` — bound to surah ${refs.join(", ")}`:""}${added?` · ${added} new surah link(s)`:linked?"":" (no new surah links)"}`
+    ? `✦ Woven in: ${nameKeys.map(k=>k+(names[k]>1?" ×"+names[k]:"")).join(", ")}${refs.length?` — bound to surah ${refs.join(", ")}`:""}${added?` · ${added} new surah link(s)`:""}`
     : "No names found — try capitalized names or Quranic figures (Musa, Maryam…).";
   renderChronicle(); renderCodex();
 }
+
+/* ================= LIVE AYAH FEED (Surah Recorder) ================= */
+let FEED={url:"", lastTs:0, lastSig:"", log:[]};
+try{ const f=JSON.parse(localStorage.getItem("lock114_feed")||"null"); if(f&&"url" in f) FEED=f; }catch(e){}
+function saveFeed(){ localStorage.setItem("lock114_feed", JSON.stringify(FEED)); }
+function feedStatus(t){ document.getElementById("feedStatus").textContent=t; }
+function renderFeedLog(){
+  const el=document.getElementById("feedLog");
+  el.innerHTML = FEED.log.length? "" : "<span style='color:#5d6478;font-style:italic;'>Nothing heard yet.</span>";
+  FEED.log.forEach(l=>{
+    const d=document.createElement("div");
+    const when=new Date(l.ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+    d.innerHTML=`☾ <b>${l.ref}</b> · ${SURAHS[l.surah-1][0]} <span style="color:#5d6478;">(${when})</span> — ${l.names.length?"sensed: "+l.names.map(personTitle).join(", "):"no names felt in this one"}`;
+    el.appendChild(d);
+  });
+}
+function parseEntries(data){
+  if(data==null) return [];
+  const arr=Array.isArray(data)?data:[data];
+  const out=[];
+  for(const e of arr){
+    if(e==null) continue;
+    if(typeof e==="string"||typeof e==="number"){ out.push({surah:null,ayah:null,note:String(e),ts:0}); continue; }
+    let surah=e.surah??e.sura??e.s??null, ayah=e.ayah??e.aya??e.a??e.verse??null;
+    if(typeof surah==="string"&&isNaN(+surah)) surah=SURAH_NAME_MAP[normSurahName(surah)]||null;
+    const ts=+(e.ts??e.time??(e.date?Date.parse(e.date):0))||0;
+    out.push({surah:surah?+surah:null, ayah:ayah?+ayah:null, note:String(e.note??e.text??e.memo??""), ts});
+  }
+  return out;
+}
+function refFromText(note){
+  let m=/(?:surah|sura|surat)\s*[:#]?\s*(\d{1,3})(?:[^\d]{0,6}(\d{1,3}))?(?:\s|$)/i.exec(note);
+  if(!m) m=/(\d{1,3})\s*:\s*(\d{1,3})/.exec(note);
+  if(m&&+m[1]>=1&&+m[1]<=N) return {surah:+m[1], ayah:m[2]?+m[2]:null};
+  return {surah:null, ayah:null};
+}
+async function processEntry(e){
+  let surah=e.surah, ayah=e.ayah, note=e.note||"";
+  if(!surah&&note){ const r=refFromText(note); surah=r.surah; ayah=ayah||r.ayah; }
+  if(!surah&&note){ const refs=findSurahRefs(note); if(refs.length) surah=refs[0]; }
+  if(!surah||surah<1||surah>N) return;
+  let ayahText="";
+  if(ayah){ try{
+      const r=await fetch(`https://api.alquran.cloud/v1/ayah/${surah}:${ayah}/en.asad`);
+      const j=await r.json(); if(j.data&&j.data.text) ayahText=j.data.text;
+    }catch(err){} }
+  const text=`${note} ${ayahText?`“${ayahText}” (surah ${surah}:${ayah})`:""}`.trim();
+  const res=weaveIntoDB(text||"surah "+surah);
+  FEED.log.unshift({ts:e.ts||Date.now(), ref:`${surah}${ayah?":"+ayah:""}`, surah, names:res.names, hadAyah:!!ayahText});
+  FEED.log=FEED.log.slice(0,12);
+}
+async function pollFeed(manual){
+  if(!FEED.url){ if(manual) feedStatus("Set a Surah Recorder URL in ⚙ settings first."); return; }
+  feedStatus("listening… polling the recorder");
+  try{
+    const bust=(FEED.url.includes("?")?"&":"?")+"_="+Date.now();
+    const r=await fetch(FEED.url+bust);
+    const raw=await r.text();
+    let data; try{ data=JSON.parse(raw); }catch(err){ data=raw; }
+    const entries=parseEntries(data);
+    if(!entries.length){ feedStatus("feed reached, but no entries found — check the format in ⚙"); return; }
+    let fresh;
+    if(entries.some(e=>e.ts)){
+      fresh=entries.filter(e=>e.ts>FEED.lastTs);
+    }else{
+      const sig=JSON.stringify(entries);
+      if(sig===FEED.lastSig){ feedStatus("listening… nothing new since the last listen"); return; }
+      FEED.lastSig=sig; fresh=entries.slice(-3);
+    }
+    if(!fresh.length){ feedStatus("listening… nothing new since the last listen"); return; }
+    for(const e of fresh.slice(-8)) await processEntry(e);
+    FEED.lastTs=Math.max(FEED.lastTs,...fresh.map(e=>e.ts||0));
+    saveFeed(); renderChronicle(); renderCodex(); renderFeedLog();
+    feedStatus(`✦ heard ${fresh.length} new ayah${fresh.length>1?"s":""} — the lock has honed itself`);
+  }catch(e){
+    feedStatus("could not reach the recorder — retrying in 10 min");
+  }
+}
+setInterval(()=>pollFeed(false), 10*60*1000);
 
 function personTitle(n){ const p=DB.people[n]; return n + (p&&p.quranic?" ☾":""); }
 
@@ -810,12 +916,23 @@ function resetChallenges(){
   updateNames();
   if(!freeMode) nextChallenge();
 }
-function makeOptions(correct,current){
+function calibration(){
+  const h=DB.history.slice(-30);
+  if(h.length<3) return {level:2, acc:null};
+  const acc=h.filter(x=>x.ok).length/h.length;
+  return {level:Math.max(1,Math.min(5,Math.round(acc*5)||1)), acc};
+}
+function makeOptions(correct,current,level){
+  level=level||2;
   const set=new Set([correct]);
   const cand=[];
+  const fsC=flowScore(correct,current);
   for(let d=1;d<=12;d++){ const n=mod(current+d); if(n!==correct)cand.push({n,w:3}); const b=mod(current-d); if(b!==correct)cand.push({n:b,w:1}); }
-  for(let n=1;n<=N;n++){ if(n!==correct&&sharedTags(tags(n),tags(correct))) cand.push({n,w:2}); }
+  for(let n=1;n<=N;n++){ if(n!==correct&&sharedTags(tags(n),tags(correct))) cand.push({n,w:2+level*.6}); }
   for(const p in DB.people) DB.people[p].surahs.forEach(n=>{ if(n!==correct) cand.push({n,w:3}); });
+  // hone: at higher calibration, favour distractors whose flow reads almost like the true surah
+  cand.forEach(c=>{ const diff=Math.abs(flowScore(c.n,current)-fsC);
+    if(diff<18) c.w+=Math.max(0,(18-diff))*level*.35; });
   for(let tries=0;tries<40&&set.size<4;tries++){
     // weighted pick
     const tot=cand.reduce((a,c)=>a+c.w,0); let r=Math.random()*tot, pick=cand[0].n;
@@ -830,7 +947,8 @@ function nextChallenge(){
   const code=secretCode();
   const current=challenge.wheelIdx===0?1:values[challenge.wheelIdx-1];
   challenge.correct=code[challenge.wheelIdx];
-  challenge.options=makeOptions(challenge.correct,current);
+  const cal=calibration();
+  challenge.options=makeOptions(challenge.correct,current,cal.level);
   challenge.active=true;
   challengeBox.classList.add("show");
   document.getElementById("challengeQ").textContent=
@@ -849,7 +967,8 @@ function nextChallenge(){
     b.onclick=()=>pickOption(i,b,scored);
     grid.appendChild(b);
   });
-  document.getElementById("progress").textContent="◈ ".repeat(challenge.wheelIdx)+"◇ ".repeat(3-challenge.wheelIdx);
+  document.getElementById("progress").textContent="◈ ".repeat(challenge.wheelIdx)+"◇ ".repeat(3-challenge.wheelIdx)
+    +`   ·   lock honed to you: level ${cal.level}${cal.acc!=null?` (${Math.round(cal.acc*100)}%)`:" (warming up)"}`;
   statusEl.classList.remove("err","good");
   statusEl.textContent="The gate whispers its riddle. Choose with the flow…";
 }
@@ -959,6 +1078,7 @@ document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
   t.classList.add("active"); document.getElementById("view-"+t.dataset.view).classList.add("active");
 });
 document.getElementById("weaveBtn").onclick=weaveText;
+document.getElementById("syncBtn").onclick=()=>pollFeed(true);
 document.getElementById("codexSearch").oninput=renderCodex;
 document.getElementById("gearBtn").onclick=()=>{
   document.getElementById("settings").classList.add("show");
@@ -978,7 +1098,10 @@ document.getElementById("closeSettings").onclick=()=>{
   localStorage.setItem("lock114_cascade",cascade?"1":"0");
   soundOn=document.getElementById("soundChk").checked;
   localStorage.setItem("lock114_sound",soundOn?"1":"0");
+  FEED.url=document.getElementById("feedUrl").value.trim();
+  saveFeed();
   document.getElementById("settings").classList.remove("show");
+  if(FEED.url) pollFeed(false);
   fetchPrayerTimes().then(()=>{ updateWatch(); setMode(); });
 };
 let crestClicks=0, crestLast=0;
@@ -995,8 +1118,10 @@ buildWheels();
 freeMode=localStorage.getItem("lock114_free")==="1";
 cascade=localStorage.getItem("lock114_cascade")!=="0";
 soundOn=localStorage.getItem("lock114_sound")!=="0";
-renderChronicle(); renderCodex();
+renderChronicle(); renderCodex(); renderFeedLog();
+document.getElementById("feedUrl").value=FEED.url;
 fetchPrayerTimes().then(()=>{ updateWatch(); setMode(); });
+if(FEED.url) pollFeed(false);
 setInterval(updateWatch,1000);
 </script>
 </body>
