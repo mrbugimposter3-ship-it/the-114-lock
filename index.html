@@ -338,9 +338,9 @@
     <div class="row"><input type="checkbox" id="cascadeChk" checked> <span>Cascade: turning a wheel shifts the wheels below it (free spin)</span></div>
     <div class="row"><input type="checkbox" id="soundChk" checked> Sound</div>
     <label style="margin-top:16px;">📡 Live ayah feed — Surah Recorder URL (polled every 10 min)</label>
-    <input type="url" id="feedUrl" placeholder="https://raw.githubusercontent.com/you/recorder/main/feed.json"
+    <input type="url" id="feedUrl" placeholder="leave empty → auto-listen to quran-recorder/logs"
       style="width:100%; background:#0d0f16; color:#e8e2d0; border:1px solid #3a4054; border-radius:8px; padding:6px 10px; font-family:inherit; user-select:text;">
-    <div style="font-size:12px;color:#8b93a8;margin-top:4px;">Accepts JSON like {"surah":18,"ayah":5,"note":"…","ts":1710000000000} (or an array of them), or plain text containing “surah 18 ayah 5” / “18:5”. Ayah text is fetched to sense the people &amp; events in it.</div>
+    <div style="font-size:12px;color:#8b93a8;margin-top:4px;">Leave empty to auto-listen to <b>github.com/mrbugimposter3-ship-it/quran-recorder</b> (logs/YYYY-MM-DD.json — ayah-stamps &amp; kalima entries, deduped, new stamps woven every 10 min). Or paste any custom feed URL: JSON like {"surah":18,"ayah":5,"note":"…","ts":…} or plain text with “surah 18 ayah 5”.</div>
     <button id="closeSettings">Close</button>
   </div>
 </div>
@@ -620,7 +620,8 @@ function weaveText(){
 }
 
 /* ================= LIVE AYAH FEED (Surah Recorder) ================= */
-let FEED={url:"", lastTs:0, lastSig:"", log:[]};
+const RECORDER_REPO="mrbugimposter3-ship-it/quran-recorder";
+let FEED={url:"", lastTs:0, lastSig:"", log:[], seen:[]};
 try{ const f=JSON.parse(localStorage.getItem("lock114_feed")||"null"); if(f&&"url" in f) FEED=f; }catch(e){}
 function saveFeed(){ localStorage.setItem("lock114_feed", JSON.stringify(FEED)); }
 function feedStatus(t){ document.getElementById("feedStatus").textContent=t; }
@@ -654,44 +655,82 @@ function refFromText(note){
   if(m&&+m[1]>=1&&+m[1]<=N) return {surah:+m[1], ayah:m[2]?+m[2]:null};
   return {surah:null, ayah:null};
 }
+async function fetchAyahText(surah,ayah){
+  try{
+    const r=await fetch(`https://api.alquran.cloud/v1/ayah/${surah}:${ayah}/en.sahih`);
+    const j=await r.json(); if(j.data&&j.data.text) return j.data.text;
+  }catch(err){}
+  return "";
+}
 async function processEntry(e){
-  let surah=e.surah, ayah=e.ayah, note=e.note||"";
+  let surah=e.surah, ayah=e.ayah, note=e.note||"", type=e.type||"ayah-stamp";
+  if(typeof surah==="string"&&isNaN(+surah)) surah=SURAH_NAME_MAP[normSurahName(surah)]||null;
+  surah=surah?+surah:null;
   if(!surah&&note){ const r=refFromText(note); surah=r.surah; ayah=ayah||r.ayah; }
   if(!surah&&note){ const refs=findSurahRefs(note); if(refs.length) surah=refs[0]; }
   if(!surah||surah<1||surah>N) return;
   let ayahText="";
-  if(ayah){ try{
-      const r=await fetch(`https://api.alquran.cloud/v1/ayah/${surah}:${ayah}/en.asad`);
-      const j=await r.json(); if(j.data&&j.data.text) ayahText=j.data.text;
-    }catch(err){} }
+  if(type==="kalima"){
+    note=note||`kalima surah ${surah}${e.position?` word ${e.position}`:""}${e.offset!=null?` offset ${e.offset}`:""}`;
+  }else if(ayah){
+    ayahText=await fetchAyahText(surah,ayah);
+    note=note||`ayah-stamp surah ${surah} ayah ${ayah}`;
+  }
   const text=`${note} ${ayahText?`“${ayahText}” (surah ${surah}:${ayah})`:""}`.trim();
   const res=weaveIntoDB(text||"surah "+surah);
-  FEED.log.unshift({ts:e.ts||Date.now(), ref:`${surah}${ayah?":"+ayah:""}`, surah, names:res.names, hadAyah:!!ayahText});
-  FEED.log=FEED.log.slice(0,12);
+  FEED.log.unshift({ts:e.ts?Date.parse(e.ts):Date.now(), ref:`${surah}${ayah?":"+ayah:""}`, surah, names:res.names, hadAyah:!!ayahText, type});
+  FEED.log=FEED.log.slice(0,14);
 }
+let shaMap={};
+try{ shaMap=JSON.parse(localStorage.getItem("lock114_shas")||"{}"); }catch(e){}
 async function pollFeed(manual){
-  if(!FEED.url){ if(manual) feedStatus("Set a Surah Recorder URL in ⚙ settings first."); return; }
   feedStatus("listening… polling the recorder");
+  const freshAll=[];
   try{
-    const bust=(FEED.url.includes("?")?"&":"?")+"_="+Date.now();
-    const r=await fetch(FEED.url+bust);
-    const raw=await r.text();
-    let data; try{ data=JSON.parse(raw); }catch(err){ data=raw; }
-    const entries=parseEntries(data);
-    if(!entries.length){ feedStatus("feed reached, but no entries found — check the format in ⚙"); return; }
-    let fresh;
-    if(entries.some(e=>e.ts)){
-      fresh=entries.filter(e=>e.ts>FEED.lastTs);
+    if(!FEED.url){
+      /* native mode: listen to quran-recorder logs/ via GitHub API (SHA-diffed, cheap) */
+      const list=await (await fetch(`https://api.github.com/repos/${RECORDER_REPO}/contents/logs`)).json();
+      if(!Array.isArray(list)) throw new Error("bad listing");
+      let changed=0;
+      for(const f of list){
+        if(!f.name.endsWith(".json"))continue;
+        if(shaMap[f.name]===f.sha)continue;
+        shaMap[f.name]=f.sha; changed++;
+        const raw=await (await fetch(`https://raw.githubusercontent.com/${RECORDER_REPO}/main/logs/${encodeURIComponent(f.name)}`)).text();
+        let data; try{ data=JSON.parse(raw); }catch(err){ continue; }
+        const arr=Array.isArray(data)?data:(data.entries||[]);
+        arr.forEach(en=>{ if(en&&typeof en==="object"&&en.surah!=null) freshAll.push(en); });
+      }
+      localStorage.setItem("lock114_shas",JSON.stringify(shaMap));
+      if(!changed){ feedStatus("listening… recorder unchanged since last listen (next: 10 min)"); return; }
     }else{
-      const sig=JSON.stringify(entries);
-      if(sig===FEED.lastSig){ feedStatus("listening… nothing new since the last listen"); return; }
-      FEED.lastSig=sig; fresh=entries.slice(-3);
+      const bust=(FEED.url.includes("?")?"&":"?")+"_="+Date.now();
+      const r=await fetch(FEED.url+bust);
+      const raw=await r.text();
+      let data; try{ data=JSON.parse(raw); }catch(err){ data=raw; }
+      const entries=parseEntries(data);
+      if(!entries.length){ feedStatus("feed reached, but no entries found — check the format in ⚙"); return; }
+      if(!entries.some(e=>e.ts)){
+        const sig=JSON.stringify(entries);
+        if(sig===FEED.lastSig){ feedStatus("listening… nothing new since the last listen"); return; }
+        FEED.lastSig=sig;
+      }
+      freshAll.push(...entries);
     }
+    /* common pipeline: timestamp filter → id dedupe → collapse repeated stamps of same ayah */
+    const seen=new Set(FEED.seen||[]);
+    let fresh=freshAll.filter(e=>!e.ts||(Date.parse(e.ts)||0)>FEED.lastTs)
+                      .filter(e=>!e.id||!seen.has(e.id));
+    const refSeen=new Set();
+    fresh=fresh.filter(e=>{ const k=(e.type||"a")+":"+(e.surah??e.surah)+":"+(e.ayah??e.ayah??"");
+      if(refSeen.has(k))return false; refSeen.add(k); return true; });
     if(!fresh.length){ feedStatus("listening… nothing new since the last listen"); return; }
-    for(const e of fresh.slice(-8)) await processEntry(e);
-    FEED.lastTs=Math.max(FEED.lastTs,...fresh.map(e=>e.ts||0));
+    for(const e of fresh.slice(-10)) await processEntry(e);
+    fresh.forEach(e=>{ if(e.id) seen.add(e.id); });
+    FEED.seen=[...seen].slice(-800);
+    FEED.lastTs=Math.max(FEED.lastTs,...fresh.map(e=>Date.parse(e.ts)||0));
     saveFeed(); renderChronicle(); renderCodex(); renderFeedLog();
-    feedStatus(`✦ heard ${fresh.length} new ayah${fresh.length>1?"s":""} — the lock has honed itself`);
+    feedStatus(`✦ heard ${fresh.length} new stamp${fresh.length>1?"s":""} — the lock has honed itself`);
   }catch(e){
     feedStatus("could not reach the recorder — retrying in 10 min");
   }
@@ -1101,7 +1140,7 @@ document.getElementById("closeSettings").onclick=()=>{
   FEED.url=document.getElementById("feedUrl").value.trim();
   saveFeed();
   document.getElementById("settings").classList.remove("show");
-  if(FEED.url) pollFeed(false);
+  pollFeed(false);
   fetchPrayerTimes().then(()=>{ updateWatch(); setMode(); });
 };
 let crestClicks=0, crestLast=0;
@@ -1121,7 +1160,7 @@ soundOn=localStorage.getItem("lock114_sound")!=="0";
 renderChronicle(); renderCodex(); renderFeedLog();
 document.getElementById("feedUrl").value=FEED.url;
 fetchPrayerTimes().then(()=>{ updateWatch(); setMode(); });
-if(FEED.url) pollFeed(false);
+pollFeed(false);
 setInterval(updateWatch,1000);
 </script>
 </body>
