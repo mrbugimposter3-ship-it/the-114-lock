@@ -100,6 +100,21 @@
   .status.good{ color:var(--glow); }
   .hint{ font-size:12px; color:#5d6478; margin-top:4px; text-align:center;}
 
+  .chamber{ display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:8px; max-width:1100px; padding:26px 14px 16px;}
+  .slot{ background:linear-gradient(180deg,#0d0f16,#1e2230); border:1px solid rgba(212,175,55,.35); border-radius:10px; padding:5px; text-align:center; transition:box-shadow .3s,border-color .3s;}
+  .slotLbl{ font-size:12px; color:var(--gold-bright); margin-bottom:3px; letter-spacing:1px;}
+  .slot select{ width:100%; background:#0d0f16; color:#e8e2d0; border:1px solid #3a4054; border-radius:6px; padding:5px 2px; font-family:inherit; font-size:14px;}
+  .slot.hot{ border-color:var(--glow); box-shadow:0 0 12px rgba(111,227,193,.45);}
+  .slot.hot select{ color:var(--glow);}
+  .slot.flash{ animation:flashA .9s;}
+  @keyframes flashA{ 0%,60%{ box-shadow:0 0 0 3px var(--gold-bright); background:#3a3420;} 100%{box-shadow:none;} }
+  .lockbar{ max-width:1100px; margin:0 auto 12px; text-align:center;}
+  #lockProgress{ color:var(--gold-bright); letter-spacing:1px; font-size:16px;}
+  .pbar{ height:8px; background:#0d0f16; border:1px solid rgba(212,175,55,.3); border-radius:6px; margin:8px auto; max-width:520px; overflow:hidden;}
+  #progressFill{ height:100%; width:0; background:linear-gradient(90deg,var(--gold-dim),var(--glow)); transition:width .3s;}
+  .lockBtns .btn{ margin:4px;}
+  #seqOut{ max-width:1100px; margin:10px auto 0; font-size:11px; color:#5d6478; word-break:break-all; text-align:center; user-select:text;}
+  @media(max-width:520px){ .chamber{ grid-template-columns:repeat(3,1fr); gap:6px;} body{padding:12px 8px 40px;} }
   /* ============ CHALLENGE ============ */
   #challenge{ max-width:680px; margin:18px auto 0; display:none;}
   #challenge.show{display:block;}
@@ -251,8 +266,14 @@
     <span id="geoStatus">locating…</span>
   </div>
 
+  <div class="lockbar">
+    <div id="lockProgress">—</div>
+    <div class="pbar"><div id="progressFill"></div></div>
+    <div class="lockBtns"><button class="btn" id="resetBtn">↺ Reset</button><button class="btn" id="shuffleBtn">⤮ Shuffle</button><button class="btn" id="copyBtn">⧉ Copy</button></div>
+  </div>
   <div class="chamber" id="chamber"></div>
-  <div class="status" id="status">The gate is sealed. The combination shifts with every prayer…</div>
+  <div id="seqOut"></div>
+  <div class="status" id="status">The gate is sealed. The combination — a full order of all 114 surahs — shifts with every prayer…</div>
   <div class="hint" id="gateHint"></div>
 
   <div id="challenge">
@@ -334,8 +355,7 @@
       <div><label>Maghrib</label><input type="time" id="tMaghrib"></div>
       <div><label>Isha</label><input type="time" id="tIsha"></div>
     </div>
-    <div class="row"><input type="checkbox" id="modeChk"> <span>Free spin mode (turn wheels by hand, no challenges)</span></div>
-    <div class="row"><input type="checkbox" id="cascadeChk" checked> <span>Cascade: turning a wheel shifts the wheels below it (free spin)</span></div>
+    <input type="checkbox" id="modeChk" hidden checked><input type="checkbox" id="cascadeChk" hidden>
     <div class="row"><input type="checkbox" id="soundChk" checked> Sound</div>
     <label style="margin-top:16px;">📡 Live ayah feed — Surah Recorder URL (polled every 10 min)</label>
     <input type="url" id="feedUrl" placeholder="leave empty → auto-listen to quran-recorder/logs"
@@ -877,183 +897,54 @@ function updateWatch(){
   document.getElementById("countdown").textContent=(mins>=60?Math.floor(mins/60)+"h ":"")+(mins%60)+"m "+secs+"s";
 }
 
-/* ================= WHEELS ================= */
-const ROW_H=52, COPIES=7;
+/* ================= 114 SELECTORS ================= */
 const chamber=document.getElementById("chamber");
 const statusEl=document.getElementById("status");
 const challengeBox=document.getElementById("challenge");
-let wheels=[], values=[1,1,1], cascade=true, isOpen=false, freeMode=false;
-
+const SEL_KEY="lock114_seq";
+let sels=[], values=[], isOpen=false, freeMode=true, cascade=false, codeCache=null;
+function identity(){ return Array.from({length:N},(_,i)=>i+1); }
+function validPerm(a){ return Array.isArray(a)&&a.length===N&&new Set(a).size===N&&a.every(x=>Number.isInteger(x)&&x>=1&&x<=N); }
+try{ const sv=JSON.parse(localStorage.getItem(SEL_KEY)||"null"); values=validPerm(sv)?sv:identity(); }catch(e){ values=identity(); }
+function rng(seed){ return ()=>{ seed=(seed+0x6D2B79F5)>>>0; let t=seed; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; }; }
+function secretCode(){
+  const iv=currentInterval(); const key=iv?iv.key:"none";
+  if(codeCache&&codeCache.key===key) return codeCache.code;
+  const r=rng(hash32(key+"|"+salt)), a=identity();
+  for(let i=N-1;i>0;i--){ const j=Math.floor(r()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  codeCache={key,code:a}; return a;
+}
 function buildWheels(){
-  chamber.innerHTML=""; wheels=[]; values=[1,1,1];
-  for(let w=0;w<3;w++){
-    if(w>0){ const c=document.createElement("div"); c.className="chain"; c.textContent="⛓"; chamber.appendChild(c); }
-    const col=document.createElement("div"); col.className="wheelCol";
-    const up=document.createElement("button"); up.className="arr"; up.textContent="▲";
-    const wheel=document.createElement("div"); wheel.className="wheel";
-    const strip=document.createElement("div"); strip.className="strip";
-    for(let c=0;c<COPIES;c++) for(let v=1;v<=N;v++){
-      const cell=document.createElement("div"); cell.className="cell";
-      cell.innerHTML=`${v}<span class="ar">${SURAHS[v-1][1]}</span>`;
-      strip.appendChild(cell);
-    }
-    wheel.appendChild(strip);
-    const band=document.createElement("div"); band.className="band"; wheel.appendChild(band);
-    const glow=document.createElement("div"); glow.className="glowband"; wheel.appendChild(glow);
-    const down=document.createElement("button"); down.className="arr"; down.textContent="▼";
-    const name=document.createElement("div"); name.className="wheelName";
-    col.append(up,wheel,down,name); chamber.appendChild(col);
-    wheels.push({el:wheel,strip,name,idx:w});
-    const bind=(el)=>el.addEventListener("pointerdown",e=>{ if(freeMode) manualTurn(w, e.clientY<wheel.getBoundingClientRect().top+ROW_H*1.5?-1:1); });
-    bind(up); bind(down); bind(wheel);
-    wheel.addEventListener("wheel",e=>{ if(freeMode){ e.preventDefault(); manualTurn(w, e.deltaY>0?1:-1); } },{passive:false});
+  chamber.innerHTML=""; sels=[];
+  const opts=identity().map(n=>`<option value="${n}">${n} · ${SURAHS[n-1][1]}</option>`).join("");
+  for(let i=0;i<N;i++){
+    const cell=document.createElement("div"); cell.className="slot";
+    cell.innerHTML=`<div class="slotLbl">${i+1}</div><select aria-label="Position ${i+1}">${opts}</select>`;
+    const s=cell.querySelector("select");
+    s.onchange=()=>{ if(isOpen)return; const nv=+s.value, j=values.indexOf(nv), old=values[i];
+      values[i]=nv; if(j>-1&&j!==i){ values[j]=old; flash(j); } tick(); render(); };
+    chamber.appendChild(cell); sels.push(s);
   }
-  for(let w=0;w<3;w++) applyWheel(w,false);
-  updateNames();
+  render(false);
 }
-function manualTurn(w,dir){
-  if(isOpen)return;
-  const affected=(cascade&&w<2)?Array.from({length:3-w},(_,k)=>w+k):[w];
-  affected.forEach(k=>{ values[k]=mod(values[k]+dir); applyWheel(k,true,true); });
-  tick(); updateNames(); checkLockManual();
+function flash(j){ const c=sels[j].parentNode; c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash"); setTimeout(()=>c.classList.remove("flash"),900); }
+function render(check=true){
+  const code=secretCode(); let ok=0;
+  sels.forEach((s,i)=>{ s.value=values[i]; const hit=values[i]===code[i]; if(hit)ok++; s.parentNode.classList.toggle("hot",hit); });
+  localStorage.setItem(SEL_KEY,JSON.stringify(values));
+  document.getElementById("lockProgress").textContent=`✦ ${ok} / ${N} tumblers in place`;
+  document.getElementById("progressFill").style.width=(ok/N*100)+"%";
+  document.getElementById("seqOut").textContent=values.join(", ");
+  if(check){ if(ok===N&&!isOpen){ const iv=currentInterval(); if(iv) openGate(iv); } }
+  return ok;
 }
-function mod(v){ return ((v-1)%N+N)%N+1; }
-function applyWheel(w,animate=true){
-  const s=wheels[w], v=values[w];
-  const base=(3*N+(v-1))*ROW_H;
-  s.strip.style.transition=animate?"transform .28s cubic-bezier(.2,.8,.3,1)":"none";
-  s.strip.style.transform=`translateY(${ROW_H-base}px)`;
-}
-function updateNames(){
-  wheels.forEach((s,w)=>{ const [en,ar]=SURAHS[values[w]-1]; s.name.innerHTML=`<span class="ar">${ar}</span>${en}`; });
-}
-function checkLockManual(){
-  const code=secretCode(), iv=currentInterval();
-  const match=iv&&values.every((v,i)=>v===code[i]);
-  if(match&&!isOpen) openGate(iv);
-  else if(!match&&isOpen) sealGate();
-  else if(!match){
-    statusEl.classList.add("err"); statusEl.textContent="The gate holds fast… the tumblers resist you.";
-    document.getElementById("chamber").classList.remove("shake");
-    void document.getElementById("chamber").offsetWidth;
-    document.getElementById("chamber").classList.add("shake");
-    sealedThud();
-    setTimeout(()=>{statusEl.classList.remove("err"); statusEl.textContent="The gate is sealed. The combination shifts with every prayer…";},1800);
-  }
-  wheels.forEach((s,w)=>s.el.classList.toggle("hot",!!match&&values[w]===code[w]));
-}
-
-/* ================= CHALLENGE MODE ================= */
-let challenge={wheelIdx:0, options:[], correct:0, active:false, position:1};
-function onWatchChanged(iv){
-  if(isOpen) sealGate();
-  resetChallenges();
-}
-function resetChallenges(){
-  challenge={wheelIdx:0, options:[], correct:0, active:false, position:1};
-  values=[1,1,1]; for(let w=0;w<3;w++) applyWheel(w,false);
-  updateNames();
-  if(!freeMode) nextChallenge();
-}
-function calibration(){
-  const h=DB.history.slice(-30);
-  if(h.length<3) return {level:2, acc:null};
-  const acc=h.filter(x=>x.ok).length/h.length;
-  return {level:Math.max(1,Math.min(5,Math.round(acc*5)||1)), acc};
-}
-function makeOptions(correct,current,level){
-  level=level||2;
-  const set=new Set([correct]);
-  const cand=[];
-  const fsC=flowScore(correct,current);
-  for(let d=1;d<=12;d++){ const n=mod(current+d); if(n!==correct)cand.push({n,w:3}); const b=mod(current-d); if(b!==correct)cand.push({n:b,w:1}); }
-  for(let n=1;n<=N;n++){ if(n!==correct&&sharedTags(tags(n),tags(correct))) cand.push({n,w:2+level*.6}); }
-  for(const p in DB.people) DB.people[p].surahs.forEach(n=>{ if(n!==correct) cand.push({n,w:3}); });
-  // hone: at higher calibration, favour distractors whose flow reads almost like the true surah
-  cand.forEach(c=>{ const diff=Math.abs(flowScore(c.n,current)-fsC);
-    if(diff<18) c.w+=Math.max(0,(18-diff))*level*.35; });
-  for(let tries=0;tries<40&&set.size<4;tries++){
-    // weighted pick
-    const tot=cand.reduce((a,c)=>a+c.w,0); let r=Math.random()*tot, pick=cand[0].n;
-    for(const c of cand){ r-=c.w; if(r<=0){ pick=c.n; break; } }
-    set.add(pick);
-  }
-  while(set.size<4) set.add(Math.floor(Math.random()*N)+1);
-  return [...set].sort(()=>Math.random()-.5);
-}
-function nextChallenge(){
-  if(challenge.wheelIdx>=3){ const iv=currentInterval(); if(iv) openGate(iv); return; }
-  const code=secretCode();
-  const current=challenge.wheelIdx===0?1:values[challenge.wheelIdx-1];
-  challenge.correct=code[challenge.wheelIdx];
-  const cal=calibration();
-  challenge.options=makeOptions(challenge.correct,current,cal.level);
-  challenge.active=true;
-  challengeBox.classList.add("show");
-  document.getElementById("challengeQ").textContent=
-    `Wheel ${["one","two","three"][challenge.wheelIdx]} — which surah continues the path?`;
-  const grid=document.getElementById("optsGrid"); grid.innerHTML="";
-  const scored=challenge.options.map(o=>({o,...scoreOption(o,current)}));
-  const maxS=Math.max(...scored.map(x=>x.s)), minS=Math.min(...scored.map(x=>x.s));
-  scored.forEach((sc,i)=>{
-    const [en,ar,mn]=SURAHS[sc.o-1];
-    const b=document.createElement("button"); b.className="opt";
-    const rel=(maxS-minS)>0?(sc.s-minS)/(maxS-minS):0.5;
-    const stars="★".repeat(1+Math.round(rel*3))+"☆".repeat(3-Math.round(rel*3));
-    b.innerHTML=`<span class="num">${sc.o}</span><span class="nm">${en} <span class="ar" style="color:var(--gold-dim);font-size:13px;">${ar}</span></span>
-      <span class="mn">${mn} · ${sc.o===current+1?"next in the mus'haf":"rev. #"+(REV[sc.o]||"?")}</span>
-      <span class="guide">${stars} — ${sc.reasons[0]}</span>`;
-    b.onclick=()=>pickOption(i,b,scored);
-    grid.appendChild(b);
-  });
-  document.getElementById("progress").textContent="◈ ".repeat(challenge.wheelIdx)+"◇ ".repeat(3-challenge.wheelIdx)
-    +`   ·   lock honed to you: level ${cal.level}${cal.acc!=null?` (${Math.round(cal.acc*100)}%)`:" (warming up)"}`;
-  statusEl.classList.remove("err","good");
-  statusEl.textContent="The gate whispers its riddle. Choose with the flow…";
-}
-function pickOption(i,btn,scored){
-  if(!challenge.active)return;
-  const chosen=scored[i].o, ok=chosen===challenge.correct;
-  DB.history.push({ts:Date.now(),key:watchCache?watchCache.key:"",wheel:challenge.wheelIdx,correct:challenge.correct,picked:chosen,ok});
-  if(DB.history.length>400)DB.history=DB.history.slice(-400);
-  saveDB();
-  challenge.active=false;
-  scored.forEach((sc,j)=>{ const b=document.getElementById("optsGrid").children[j];
-    if(j===i) b.classList.add(ok?"picked-right":"picked-wrong");
-    else b.classList.add("dim");
-    if(!ok&&sc.o===challenge.correct) b.classList.add("picked-right"); });
-  if(ok){
-    rightChime();
-    values[challenge.wheelIdx]=challenge.correct;
-    applyWheel(challenge.wheelIdx,true,true); clack();
-    wheels[challenge.wheelIdx].el.classList.add("hot");
-    updateNames();
-    statusEl.classList.add("good");
-    statusEl.textContent=`✦ ${SURAHS[chosen-1][0]} falls into place — the tumbler turns.`;
-    challenge.wheelIdx++;
-    if(challenge.wheelIdx>=3){ setTimeout(()=>{ const iv=currentInterval(); if(iv)openGate(iv); },700); challengeBox.classList.remove("show"); return; }
-    setTimeout(()=>{ statusEl.classList.remove("good"); nextChallenge(); },1100);
-  }else{
-    wrongBuzz();
-    document.getElementById("chamber").classList.remove("shake");
-    void document.getElementById("chamber").offsetWidth;
-    document.getElementById("chamber").classList.add("shake");
-    statusEl.classList.add("err");
-    const c=SURAHS[challenge.correct-1];
-    statusEl.textContent=`The gate resists… it was waiting for ${c[0]} (${challenge.correct}). Watch the flow anew.`;
-    setTimeout(()=>{ statusEl.classList.remove("err"); challenge.position=values[Math.max(0,challenge.wheelIdx-1)]||1; nextChallenge(); },2200);
-  }
-  renderCodex(); // learned weights changed
-}
-function setMode(){
-  document.getElementById("challenge").classList.toggle("show",!freeMode);
-  document.getElementById("gateHint").textContent=freeMode
-    ? "Drag / scroll / arrow keys a wheel · cascade shifts the wheels below (mod 114)"
-    : "In challenge mode the gate asks — answer with the flow of the Qur'an";
-  wheels.forEach(w=>w.el.classList.toggle("locked",!freeMode));
-  if(!freeMode) resetChallenges();
-  else { challengeBox.classList.remove("show"); statusEl.textContent="The gate is sealed. The combination shifts with every prayer…"; }
-}
+function shuffleSeq(){ const a=identity(); for(let i=N-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } values=a; clack(); render(); }
+function resetSeq(){ values=identity(); clack(); render(); }
+function copySeq(){ const t=values.join(","); (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{statusEl.textContent="Sequence copied.";},()=>{statusEl.textContent=t;}); }
+function onWatchChanged(iv){ codeCache=null; if(isOpen) sealGate(); render(false);
+  statusEl.textContent="A new watch — the combination has shifted. 114 tumblers await…"; }
+function setMode(){ challengeBox.classList.remove("show");
+  document.getElementById("gateHint").textContent="Set all 114 positions to this watch's order of the surahs. Picking a used number swaps it with the other box (it flashes). Green = in place."; }
 
 /* ================= GATE ================= */
 function openGate(iv){
@@ -1061,7 +952,7 @@ function openGate(iv){
   gateChord();
   const code=secretCode();
   document.getElementById("beyondVerse").textContent=
-    `${SURAS[code[0]-1][0]} · ${SURAS[code[1]-1][0]} · ${SURAS[code[2]-1][0]} — the path flowed from Al-Fatihah toward An-Nas.`;
+    `All 114 surahs fell into this watch's order — beginning with ${SURAHS[code[0]-1][0]} and ending with ${SURAHS[code[N-1]-1][0]}.`;
   document.getElementById("gate").classList.add("open");
   const sf=document.getElementById("sparkleField"); sf.innerHTML="";
   for(let i=0;i<40;i++){ const sp=document.createElement("div"); sp.className="spark";
@@ -1075,6 +966,9 @@ function sealGate(){ if(!isOpen)return; isOpen=false;
   statusEl.textContent="The gate is sealed once more. Watch the prayers…";
 }
 document.getElementById("sealBtn").onclick=()=>sealGate();
+document.getElementById("resetBtn").onclick=resetSeq;
+document.getElementById("shuffleBtn").onclick=shuffleSeq;
+document.getElementById("copyBtn").onclick=copySeq;
 
 /* ================= CODEX TABLE ================= */
 function renderCodex(){
@@ -1147,15 +1041,13 @@ let crestClicks=0, crestLast=0;
 document.getElementById("crest").addEventListener("click",()=>{
   const now=Date.now(); crestClicks=(now-(crestLast||0)<600)?crestClicks+1:1; crestLast=now;
   if(crestClicks>=3){ crestClicks=0; const code=secretCode();
-    statusEl.textContent=`👁 This watch's code: ${code.join(" · ")}`;
+    statusEl.textContent=`👁 This watch's code: ${code.join(" · ")}`; statusEl.style.userSelect="text";
     setTimeout(()=>{ if(!isOpen) statusEl.textContent="The gate is sealed. The combination shifts with every prayer…"; },6000);
   }
 });
 
 /* ================= BOOT ================= */
 buildWheels();
-freeMode=localStorage.getItem("lock114_free")==="1";
-cascade=localStorage.getItem("lock114_cascade")!=="0";
 soundOn=localStorage.getItem("lock114_sound")!=="0";
 renderChronicle(); renderCodex(); renderFeedLog();
 document.getElementById("feedUrl").value=FEED.url;
